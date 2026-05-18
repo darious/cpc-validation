@@ -1,0 +1,13 @@
+schema = 1
+name = "464-boot-banner"
+description = "CPC 464 boots cleanly to the BASIC 1.0 prompt within 200 frames."
+
+[setup]
+model = "Cpc464"
+crtc = "Type1"
+frames = 200
+
+[[verdict]]
+kind = "screen_image"
+golden = "goldens/boot.png"
+tolerance = 0.0

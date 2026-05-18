@@ -1,0 +1,44 @@
+[project]
+name = "cpc-validation"
+version = "0.1.0"
+description = "Generic accuracy/validation harness for Amstrad CPC emulators."
+authors = [
+    { name = "darious", email = "chris@darious.co.uk" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "click>=8.4.0",
+    "pillow>=12.2.0",
+]
+
+[project.scripts]
+cpc-validation = "cpc_validation.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.11.12,<0.12.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.13",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "W",   # pycodestyle warnings
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "SIM", # simplify
+    "RUF", # ruff-specific
+]
+ignore = []
+
+[tool.ruff.lint.isort]
+known-first-party = ["cpc_validation"]

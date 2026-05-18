@@ -1,0 +1,21 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Rust build artefacts (per-runner)
+runners/**/target/
+
+# Local fixtures fetched by scripts
+catalog/arnold/**/*.dsk
+catalog/zexall/**/*.rom
+catalog/zexdoc/**/*.rom
+
+# Diff outputs produced by failed screen_image verdicts
+**/diff.png

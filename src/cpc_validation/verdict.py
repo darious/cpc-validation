@@ -1,0 +1,146 @@
+"""Verdict evaluation against runner artefacts."""
+
+from __future__ import annotations
+
+import hashlib
+from dataclasses import dataclass
+from pathlib import Path
+
+from PIL import Image
+
+from cpc_validation.manifest import Manifest, Verdict
+from cpc_validation.runner import RunArtefacts
+
+
+@dataclass
+class VerdictOutcome:
+    verdict: Verdict
+    passed: bool
+    reason: str
+
+
+def evaluate(
+    manifest: Manifest,
+    artefacts: RunArtefacts,
+    bless: bool = False,
+) -> list[VerdictOutcome]:
+    return [_evaluate_one(manifest, v, artefacts, bless) for v in manifest.verdicts]
+
+
+def _evaluate_one(
+    manifest: Manifest,
+    verdict: Verdict,
+    artefacts: RunArtefacts,
+    bless: bool,
+) -> VerdictOutcome:
+    try:
+        match verdict.kind:
+            case "ram_byte":
+                return _ram_byte(verdict, artefacts)
+            case "ram_hash":
+                return _ram_hash(verdict, artefacts)
+            case "screen_image":
+                return _screen_image(manifest, verdict, artefacts, bless)
+            case "screen_text_contains" | "screen_text_regex":
+                return VerdictOutcome(verdict, False, "OCR not yet implemented")
+            case _:
+                return VerdictOutcome(verdict, False, f"unknown verdict kind {verdict.kind!r}")
+    except Exception as e:
+        return VerdictOutcome(verdict, False, f"verdict raised: {e}")
+
+
+def _ram_byte(verdict: Verdict, artefacts: RunArtefacts) -> VerdictOutcome:
+    address = _require_int(verdict, "address")
+    expected = _require_int(verdict, "value") & 0xFF
+
+    data = artefacts.ram_path.read_bytes()
+    if not 0 <= address < len(data):
+        return VerdictOutcome(
+            verdict, False, f"address 0x{address:X} out of range (ram size {len(data)})"
+        )
+    actual = data[address]
+    if actual == expected:
+        return VerdictOutcome(verdict, True, f"ram[0x{address:X}] = 0x{actual:02X}")
+    return VerdictOutcome(
+        verdict, False, f"ram[0x{address:X}] = 0x{actual:02X}, expected 0x{expected:02X}"
+    )
+
+
+def _ram_hash(verdict: Verdict, artefacts: RunArtefacts) -> VerdictOutcome:
+    rng = verdict.params.get("range")
+    if not isinstance(rng, list) or len(rng) != 2:
+        return VerdictOutcome(verdict, False, "ram_hash.range must be [start, end]")
+    expected = verdict.params.get("sha256")
+    if not isinstance(expected, str):
+        return VerdictOutcome(verdict, False, "ram_hash.sha256 must be a string")
+    start, end = int(rng[0]), int(rng[1])
+
+    data = artefacts.ram_path.read_bytes()
+    if not 0 <= start < end <= len(data):
+        return VerdictOutcome(verdict, False, f"range {start:X}..{end:X} out of bounds")
+    actual = hashlib.sha256(data[start:end]).hexdigest()
+    if actual == expected:
+        return VerdictOutcome(verdict, True, f"sha256 = {actual}")
+    return VerdictOutcome(verdict, False, f"sha256 {actual} != expected {expected}")
+
+
+def _screen_image(
+    manifest: Manifest,
+    verdict: Verdict,
+    artefacts: RunArtefacts,
+    bless: bool,
+) -> VerdictOutcome:
+    golden_str = verdict.params.get("golden")
+    if not isinstance(golden_str, str):
+        return VerdictOutcome(verdict, False, "screen_image.golden is required")
+    golden_path: Path = manifest.resolve(golden_str)
+    tolerance = float(verdict.params.get("tolerance", 0.0))
+
+    if bless or not golden_path.exists():
+        golden_path.parent.mkdir(parents=True, exist_ok=True)
+        Image.open(artefacts.screen_path).save(golden_path)
+        return VerdictOutcome(verdict, True, f"blessed {golden_path} from {artefacts.screen_path}")
+
+    actual = Image.open(artefacts.screen_path).convert("RGBA")
+    golden = Image.open(golden_path).convert("RGBA")
+    if actual.size != golden.size:
+        return VerdictOutcome(verdict, False, f"size {actual.size} != golden {golden.size}")
+
+    a = actual.tobytes()
+    g = golden.tobytes()
+    # Compare 4 bytes per pixel.
+    pixel_count = actual.size[0] * actual.size[1]
+    diff = sum(1 for i in range(pixel_count) if a[i * 4 : i * 4 + 4] != g[i * 4 : i * 4 + 4])
+    ratio = diff / pixel_count if pixel_count else 0.0
+    if ratio <= tolerance:
+        return VerdictOutcome(verdict, True, f"diff ratio {ratio:.4f} ≤ {tolerance:.4f}")
+
+    diff_path = artefacts.output_dir / "diff.png"
+    _write_diff_png(actual, golden, diff_path)
+    return VerdictOutcome(
+        verdict,
+        False,
+        f"diff ratio {ratio:.4f} > {tolerance:.4f}; see {diff_path}",
+    )
+
+
+def _write_diff_png(actual: Image.Image, golden: Image.Image, out_path: Path) -> None:
+    w, h = actual.size
+    diff_img = Image.new("RGBA", (w, h))
+    a_pixels = actual.load()
+    g_pixels = golden.load()
+    d_pixels = diff_img.load()
+    for y in range(h):
+        for x in range(w):
+            if a_pixels[x, y] == g_pixels[x, y]:
+                d_pixels[x, y] = (0, 0, 0, 255)
+            else:
+                d_pixels[x, y] = (255, 0, 255, 255)
+    diff_img.save(out_path)
+
+
+def _require_int(verdict: Verdict, key: str) -> int:
+    v = verdict.params.get(key)
+    if isinstance(v, int):
+        return v
+    raise ValueError(f"verdict {verdict.kind} requires integer {key!r}")

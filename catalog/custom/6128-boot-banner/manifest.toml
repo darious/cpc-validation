@@ -1,0 +1,13 @@
+schema = 1
+name = "6128-boot-banner"
+description = "CPC 6128 boots cleanly to the BASIC 1.1 prompt and reports 128K."
+
+[setup]
+model = "Cpc6128"
+crtc = "Type1"
+frames = 200
+
+[[verdict]]
+kind = "screen_image"
+golden = "goldens/boot.png"
+tolerance = 0.0
