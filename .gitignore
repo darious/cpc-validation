@@ -13,6 +13,7 @@ wheels/
 runners/**/target/
 
 # Local fixtures fetched by scripts
+catalog/amstrad-diagnostics/fixtures/*.dsk
 catalog/arnold/**/*.dsk
 catalog/zexall/**/*.rom
 catalog/zexdoc/**/*.rom

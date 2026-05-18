@@ -16,14 +16,17 @@ from cpc_validation.glyphs import GLYPHS
 
 DEFAULT_SCREEN_BASE = 0xC000
 MODE1_COLS = 40
-MODE1_ROWS = 25
+MODE2_COLS = 80
+TEXT_ROWS = 25
 
 
 def decode_screen(ram: bytes, screen_mode: int) -> list[str] | None:
-    """Return 25 strings of 40 chars each, or None for unsupported modes."""
-    if screen_mode != 1:
-        return None
-    return _decode_mode1(ram, DEFAULT_SCREEN_BASE)
+    """Return 25 strings of column-count chars each, or None for unsupported modes."""
+    if screen_mode == 1:
+        return _decode_mode1(ram, DEFAULT_SCREEN_BASE)
+    if screen_mode == 2:
+        return _decode_mode2(ram, DEFAULT_SCREEN_BASE)
+    return None
 
 
 def decode_screen_text(ram: bytes, screen_mode: int) -> str:
@@ -40,11 +43,29 @@ def decode_screen_text(ram: bytes, screen_mode: int) -> str:
 
 def _decode_mode1(ram: bytes, base: int) -> list[str]:
     rows: list[str] = []
-    for char_row in range(MODE1_ROWS):
+    for char_row in range(TEXT_ROWS):
         line: list[str] = []
         for col in range(MODE1_COLS):
             glyph = _read_cell_mode1(ram, base, char_row, col)
             line.append(GLYPHS.get(glyph, "?"))
+        rows.append("".join(line))
+    return rows
+
+
+def _decode_mode2(ram: bytes, base: int) -> list[str]:
+    # Mode 2: 80x25 chars, 8 pixels per byte (1bpp), one byte per char cell row.
+    rows: list[str] = []
+    for char_row in range(TEXT_ROWS):
+        line: list[str] = []
+        for col in range(MODE2_COLS):
+            out = bytearray(8)
+            for sub in range(8):
+                addr = base + sub * 0x800 + char_row * 80 + col
+                if addr >= len(ram):
+                    out[sub] = 0
+                else:
+                    out[sub] = ram[addr]
+            line.append(GLYPHS.get(bytes(out), "?"))
         rows.append("".join(line))
     return rows
 

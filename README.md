@@ -26,6 +26,9 @@ All commands below assume the project root (`cpc-validation/`) as cwd.
 # Sync Python deps.
 uv sync
 
+# Fetch external test corpora (optional).
+./scripts/fetch-amstrad-diag.sh
+
 # Run the catalog.
 uv run cpc-validation run \
   --runner ./runners/ronald/target/release/cpc-runner-ronald \
@@ -67,11 +70,12 @@ See [schema/manifest.md](schema/manifest.md) for the manifest format.
 | Manifest schema (v1)       | documented |
 | Runner protocol            | documented |
 | Verdicts: ram_byte, ram_hash, screen_image | implemented |
-| Verdicts: screen_text_*    | OCR not yet implemented |
+| Verdicts: screen_text_*    | implemented (mode 1 and mode 2 only) |
 | Ronald adapter             | functional |
 | Catalog: boot banners (464/664/6128) | 3 tests, all passing |
-| Catalog: Arnold acid tests | manifests pending |
-| Catalog: Z80 exercisers    | pending |
+| Catalog: AmstradDiag boot  | 1 test, pixel-only (custom font) |
+| Catalog: Arnold acid tests | needs innoextract; not wired |
+| Catalog: Z80 exercisers    | adapter --rom path not yet wired |
 
 The Ronald adapter depends on `ronald-core` via path. Adjust the path in
 `runners/ronald/Cargo.toml` if your `ronald` checkout lives elsewhere.

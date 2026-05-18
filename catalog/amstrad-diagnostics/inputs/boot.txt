@@ -1,0 +1,7 @@
+# Run the diagnostic from the CPC664 BASIC prompt.
+sleep 100
+type_text RUN"DIAG"
+sleep 1
+key_press Enter
+sleep 1
+key_release Enter

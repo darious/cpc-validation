@@ -1,0 +1,25 @@
+schema = 1
+name = "amstrad-diag-boot"
+description = """
+AmstradDiag (https://github.com/llopis/amstrad-diagnostics) boots from
+its DSK to the splash screen without crashing the emulator. The tool
+uses a custom font so OCR cannot decode its display; this test relies
+on a pixel-match against a blessed splash screenshot. The test
+implicitly stresses CRTC register selection, FDC reads via AMSDOS, and
+keyboard input handling - all paths that previously panicked ronald.
+
+Requires catalog/amstrad-diagnostics/fixtures/AmstradDiag.dsk; run
+./scripts/fetch-amstrad-diag.sh to fetch it.
+"""
+
+[setup]
+model = "Cpc664"
+crtc = "Type1"
+frames = 600
+disks = ["fixtures/AmstradDiag.dsk"]
+input = "inputs/boot.txt"
+
+[[verdict]]
+kind = "screen_image"
+golden = "goldens/splash.png"
+tolerance = 0.005
