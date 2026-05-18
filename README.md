@@ -17,8 +17,10 @@ cpc-validation/
 
 ## Quickstart
 
+All commands below assume the project root (`cpc-validation/`) as cwd.
+
 ```sh
-# Build the bundled Ronald adapter (Rust).
+# Build the bundled Ronald adapter (Rust). Parens keep the cd local.
 ( cd runners/ronald && cargo build --release )
 
 # Sync Python deps.

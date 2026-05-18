@@ -1,6 +1,6 @@
 schema = 1
 name = "664-boot-banner"
-description = "CPC 664 boots cleanly to the BASIC 1.1 prompt with AMSDOS initialised."
+description = "CPC 664 boots cleanly: 64K banner, BASIC 1.1, Ready prompt."
 
 [setup]
 model = "Cpc664"
@@ -11,3 +11,15 @@ frames = 200
 kind = "screen_image"
 golden = "goldens/boot.png"
 tolerance = 0.0
+
+[[verdict]]
+kind = "screen_text_regex"
+pattern = "Amstrad 64K Microcomputer\\s+\\(v2\\)"
+
+[[verdict]]
+kind = "screen_text_contains"
+needle = "BASIC 1.1"
+
+[[verdict]]
+kind = "screen_text_contains"
+needle = "Ready"

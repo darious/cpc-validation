@@ -1,6 +1,6 @@
 schema = 1
 name = "464-boot-banner"
-description = "CPC 464 boots cleanly to the BASIC 1.0 prompt within 200 frames."
+description = "CPC 464 boots cleanly: 64K banner, BASIC 1.0, Ready prompt."
 
 [setup]
 model = "Cpc464"
@@ -11,3 +11,15 @@ frames = 200
 kind = "screen_image"
 golden = "goldens/boot.png"
 tolerance = 0.0
+
+[[verdict]]
+kind = "screen_text_regex"
+pattern = "Amstrad 64K Microcomputer\\s+\\(v1\\)"
+
+[[verdict]]
+kind = "screen_text_contains"
+needle = "BASIC 1.0"
+
+[[verdict]]
+kind = "screen_text_contains"
+needle = "Ready"

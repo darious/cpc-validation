@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
 from PIL import Image
 
+from cpc_validation import ocr
 from cpc_validation.manifest import Manifest, Verdict
 from cpc_validation.runner import RunArtefacts
 
@@ -41,8 +43,10 @@ def _evaluate_one(
                 return _ram_hash(verdict, artefacts)
             case "screen_image":
                 return _screen_image(manifest, verdict, artefacts, bless)
-            case "screen_text_contains" | "screen_text_regex":
-                return VerdictOutcome(verdict, False, "OCR not yet implemented")
+            case "screen_text_contains":
+                return _screen_text_contains(verdict, artefacts)
+            case "screen_text_regex":
+                return _screen_text_regex(verdict, artefacts)
             case _:
                 return VerdictOutcome(verdict, False, f"unknown verdict kind {verdict.kind!r}")
     except Exception as e:
@@ -137,6 +141,47 @@ def _write_diff_png(actual: Image.Image, golden: Image.Image, out_path: Path) ->
             else:
                 d_pixels[x, y] = (255, 0, 255, 255)
     diff_img.save(out_path)
+
+
+def _screen_text(verdict: Verdict, artefacts: RunArtefacts) -> str | None:
+    mode = int(artefacts.meta.get("screen_mode", -1))
+    ram = artefacts.ram_path.read_bytes()
+    text = ocr.decode_screen_text(ram, mode)
+    if text == "":
+        return None
+    return text
+
+
+def _screen_text_contains(verdict: Verdict, artefacts: RunArtefacts) -> VerdictOutcome:
+    needle = verdict.params.get("needle")
+    if not isinstance(needle, str):
+        return VerdictOutcome(verdict, False, "screen_text_contains.needle is required")
+    text = _screen_text(verdict, artefacts)
+    if text is None:
+        return VerdictOutcome(
+            verdict, False, f"OCR unavailable for screen_mode {artefacts.meta.get('screen_mode')}"
+        )
+    if needle in text:
+        return VerdictOutcome(verdict, True, f"found {needle!r}")
+    preview = " | ".join(line for line in text.splitlines() if line)[:120]
+    return VerdictOutcome(verdict, False, f"{needle!r} not on screen (saw: {preview!r})")
+
+
+def _screen_text_regex(verdict: Verdict, artefacts: RunArtefacts) -> VerdictOutcome:
+    pattern = verdict.params.get("pattern")
+    if not isinstance(pattern, str):
+        return VerdictOutcome(verdict, False, "screen_text_regex.pattern is required")
+    text = _screen_text(verdict, artefacts)
+    if text is None:
+        return VerdictOutcome(
+            verdict, False, f"OCR unavailable for screen_mode {artefacts.meta.get('screen_mode')}"
+        )
+    flags = re.MULTILINE | re.DOTALL
+    m = re.search(pattern, text, flags=flags)
+    if m:
+        return VerdictOutcome(verdict, True, f"matched {m.group(0)!r}")
+    preview = " | ".join(line for line in text.splitlines() if line)[:120]
+    return VerdictOutcome(verdict, False, f"pattern {pattern!r} not found (saw: {preview!r})")
 
 
 def _require_int(verdict: Verdict, key: str) -> int:
