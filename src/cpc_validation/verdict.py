@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import hashlib
+import math
 import re
+import wave
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -36,7 +38,12 @@ def evaluate(
 
 
 # Keys holding expected RAM values that --bless can fill in, per verdict kind.
-_BLESSABLE_KEYS = {"ram_hash": "sha256", "ram_bytes": "hex", "ram_byte": "value"}
+_BLESSABLE_KEYS = {
+    "ram_hash": "sha256",
+    "ram_bytes": "hex",
+    "ram_byte": "value",
+    "audio_tone": "frequency",
+}
 
 
 def _rewrite_manifest_values(manifest: Manifest, blessed: list[str | None]) -> None:
@@ -85,6 +92,8 @@ def _evaluate_one(
                 return _ram_hash(verdict, artefacts, bless)
             case "ram_bytes":
                 return _ram_bytes(verdict, artefacts, bless)
+            case "audio_tone":
+                return _audio_tone(verdict, artefacts, bless)
             case "screen_image":
                 return _screen_image(manifest, verdict, artefacts, bless)
             case "screen_text_contains":
@@ -164,6 +173,85 @@ def _ram_bytes(verdict: Verdict, artefacts: RunArtefacts, bless: bool) -> Verdic
     )
     more = f" and {len(diffs) - 6} more" if len(diffs) > 6 else ""
     return VerdictOutcome(verdict, False, f"{len(diffs)} bytes differ: {shown}{more}")
+
+
+def _read_audio(path: Path, channel: str) -> tuple[list[float], int]:
+    """Return one channel (left, right or mix) of a 16-bit WAV as floats."""
+    with wave.open(str(path), "rb") as w:
+        if w.getsampwidth() != 2:
+            raise ValueError("audio.wav must be 16-bit PCM")
+        n_channels, rate = w.getnchannels(), w.getframerate()
+        raw = w.readframes(w.getnframes())
+    count = len(raw) // 2
+    values = [v / 32768.0 for v in memoryview(raw).cast("h")[:count]]
+    if n_channels == 1:
+        return values, rate
+    left, right = values[0::2], values[1::2]
+    if channel == "left":
+        return left, rate
+    if channel == "right":
+        return right, rate
+    return [(a + b) / 2 for a, b in zip(left, right, strict=False)], rate
+
+
+def _tone(samples: list[float], rate: int) -> tuple[float, float]:
+    """Estimate (frequency in Hz, RMS level) from rising zero crossings."""
+    if not samples:
+        return 0.0, 0.0
+    mean = sum(samples) / len(samples)
+    centred = [v - mean for v in samples]
+    rms = math.sqrt(sum(v * v for v in centred) / len(centred))
+    # Hysteresis avoids counting noise around zero as crossings.
+    threshold = rms * 0.25
+    crossings: list[int] = []
+    armed = False
+    for i, v in enumerate(centred):
+        if v < -threshold:
+            armed = True
+        elif v > threshold and armed:
+            crossings.append(i)
+            armed = False
+    if len(crossings) < 2:
+        return 0.0, rms
+    return (len(crossings) - 1) * rate / (crossings[-1] - crossings[0]), rms
+
+
+def _audio_tone(verdict: Verdict, artefacts: RunArtefacts, bless: bool) -> VerdictOutcome:
+    path = artefacts.output_dir / "audio.wav"
+    if not path.exists():
+        return VerdictOutcome(verdict, False, "runner did not produce audio.wav")
+    channel = verdict.params.get("channel", "mix")
+    samples, rate = _read_audio(path, channel)
+    freq, rms = _tone(samples, rate)
+    if verdict.params.get("measure", "tone") == "envelope":
+        # Frequency of the amplitude envelope: RMS over 1 ms windows.
+        window = max(1, rate // 1000)
+        levels = [
+            math.sqrt(sum(v * v for v in samples[i : i + window]) / window)
+            for i in range(0, len(samples) - window, window)
+        ]
+        freq, _ = _tone(levels, rate // window)
+    silent = float(verdict.params.get("silence_below", 0.005))
+    if verdict.params.get("silent", False):
+        if rms < silent:
+            return VerdictOutcome(verdict, True, f"{channel} silent (rms {rms:.4f})")
+        reason = f"{channel} not silent (rms {rms:.4f}, {freq:.1f} Hz)"
+        return VerdictOutcome(verdict, False, reason)
+    if rms < silent:
+        return VerdictOutcome(verdict, False, f"{channel} is silent (rms {rms:.4f})")
+    if bless:
+        return VerdictOutcome(
+            verdict, True, f"blessed {channel} {freq:.1f} Hz (rms {rms:.4f})", f"{freq:.1f}"
+        )
+    expected = verdict.params.get("frequency")
+    if not isinstance(expected, int | float):
+        return VerdictOutcome(verdict, False, "audio_tone.frequency is required (run with --bless)")
+    tolerance = float(verdict.params.get("tolerance", 0.02))
+    if abs(freq - expected) <= expected * tolerance:
+        return VerdictOutcome(verdict, True, f"{channel} {freq:.1f} Hz ~ {expected} Hz")
+    return VerdictOutcome(
+        verdict, False, f"{channel} {freq:.1f} Hz, expected {expected} Hz +/-{tolerance:.0%}"
+    )
 
 
 def _screen_image(

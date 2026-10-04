@@ -1,0 +1,26 @@
+schema = 1
+name = "basic-sound"
+description = """
+BASIC SOUND commands: 440 Hz on channel A (left) and 880 Hz on channel C
+(right) while the notes play. Frequencies come from the reference emulator
+(CPCEC) via --bless.
+"""
+
+[setup]
+model = "Cpc6128"
+crtc = "Type1"
+frames = 50
+input = "inputs/sound.txt"
+audio_frames = 20
+
+[[verdict]]
+kind = "audio_tone"
+channel = "left"
+tolerance = 0.01
+frequency = 439.4
+
+[[verdict]]
+kind = "audio_tone"
+channel = "right"
+tolerance = 0.01
+frequency = 878.9

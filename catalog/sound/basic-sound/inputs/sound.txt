@@ -1,0 +1,4 @@
+# Two notes through the firmware sound queues: 440 Hz on channel A (left),
+# 880 Hz on channel C (right).
+sleep 150
+type_text SOUND 1,142,500,15:SOUND 4,71,500,10\n

@@ -15,6 +15,7 @@ frames = 200               # required: frames after any input script
 disks = []                 # optional: list of paths relative to the manifest
 rom = "fixtures/zex.rom"   # optional: substitute lower ROM for direct-boot
 input = "input.txt"        # optional: input script path relative to manifest
+audio_frames = 20          # optional: ask the runner for audio.wav (last N frames)
 
 [[verdict]]
 kind = "screen_image"
@@ -52,6 +53,7 @@ finished.
 | `ram_byte`               | `ram.bin[address]`  | byte equals `value`                                          |
 | `ram_hash`               | `ram.bin[range]`    | sha256 equals `sha256`                                       |
 | `ram_bytes`              | `ram.bin[address..]`| bytes equal `hex`; failures list the differing addresses     |
+| `audio_tone`             | `audio.wav`         | `channel` (left/right/mix) has a tone at `frequency` within `tolerance` (fraction); `measure = "envelope"` measures the amplitude envelope instead; `silent = true` expects silence |
 | `screen_image`           | `screen.png`        | pixel diff against `golden` within `tolerance`               |
 | `screen_text_contains`   | `ram.bin` + `screen_mode` (via OCR) | OCR'd grid contains `needle`                  |
 | `screen_text_regex`      | `ram.bin` + `screen_mode` (via OCR) | OCR'd grid matches `pattern`                  |

@@ -44,6 +44,8 @@ def invoke(runner: Path, manifest: Manifest, output_dir: Path) -> RunArtefacts:
         args += ["--rom", str(manifest.resolve(manifest.setup.rom))]
     if manifest.setup.input_script is not None:
         args += ["--input", str(manifest.resolve(manifest.setup.input_script))]
+    if manifest.setup.audio_frames:
+        args += ["--audio-frames", str(manifest.setup.audio_frames)]
 
     proc = subprocess.run(args, capture_output=True, text=True, check=False)
     if proc.returncode != 0:

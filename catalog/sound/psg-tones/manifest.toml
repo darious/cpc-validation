@@ -1,0 +1,26 @@
+schema = 1
+name = "psg-tones"
+description = """
+PSG tones programmed directly (src/test.asm): 250 Hz on channel A (left),
+~992 Hz on channel C (right). Checks tone periods and the CPC's ABC stereo
+mix. Frequencies come from the reference emulator (CPCEC) via --bless.
+"""
+
+[setup]
+model = "Cpc6128"
+crtc = "Type1"
+frames = 30
+rom = "fixtures/test.rom"
+audio_frames = 20
+
+[[verdict]]
+kind = "audio_tone"
+channel = "left"
+tolerance = 0.01
+frequency = 249.6
+
+[[verdict]]
+kind = "audio_tone"
+channel = "right"
+tolerance = 0.01
+frequency = 990.5

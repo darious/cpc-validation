@@ -19,6 +19,7 @@ class Setup:
     disks: list[Path]
     rom: Path | None
     input_script: Path | None
+    audio_frames: int = 0
 
 
 @dataclass(frozen=True)
@@ -93,6 +94,10 @@ def _parse_setup(raw: dict, path: Path) -> Setup:
     rom = Path(raw["rom"]) if "rom" in raw else None
     input_script = Path(raw["input"]) if "input" in raw else None
 
+    audio_frames = raw.get("audio_frames", 0)
+    if not isinstance(audio_frames, int) or audio_frames < 0:
+        raise ValueError(f"{path}: setup.audio_frames must be a non-negative integer")
+
     return Setup(
         model=model,
         crtc=crtc,
@@ -100,6 +105,7 @@ def _parse_setup(raw: dict, path: Path) -> Setup:
         disks=disks,
         rom=rom,
         input_script=input_script,
+        audio_frames=audio_frames,
     )
 
 

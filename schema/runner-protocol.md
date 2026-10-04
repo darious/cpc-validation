@@ -17,6 +17,7 @@ A runner MUST accept the following flags. Unknown flags MAY be tolerated.
          [--disk-b PATH]
          [--rom PATH]
          [--input PATH]
+         [--audio-frames N]
 ```
 
 Semantics:
@@ -31,6 +32,7 @@ Semantics:
 | `--disk-b`     | no       | DSK image inserted in drive B.                                       |
 | `--rom`        | no       | A raw ROM image to substitute for the lower OS ROM. Used for direct-boot ROM tests like zexdoc/zexall. |
 | `--input`      | no       | Path to an input script (see below) that runs before the `--frames` count begins. |
+| `--audio-frames` | no     | Also write `audio.wav`: the last N frames of sound as 16-bit stereo PCM at 44100 Hz. |
 
 ## Input script
 

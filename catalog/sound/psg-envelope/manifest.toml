@@ -1,0 +1,26 @@
+schema = 1
+name = "psg-envelope"
+description = """
+PSG envelope generator (src/test.asm): a 3125 Hz tone on channel A whose
+amplitude follows a repeating sawtooth envelope of period 200 (~19.5 Hz).
+Frequencies come from the reference emulator (CPCEC) via --bless.
+"""
+
+[setup]
+model = "Cpc6128"
+crtc = "Type1"
+frames = 60
+rom = "fixtures/test.rom"
+audio_frames = 50
+
+[[verdict]]
+kind = "audio_tone"
+channel = "left"
+measure = "envelope"
+tolerance = 0.02
+frequency = 19.5
+
+[[verdict]]
+kind = "audio_tone"
+channel = "right"
+silent = true

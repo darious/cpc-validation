@@ -15,14 +15,17 @@
 
 static int runner_poll(SDL_Event *event);
 static void runner_delay(Uint32 ms) { (void)ms; }
+static int runner_queue_audio(SDL_AudioDeviceID dev, const void *data, Uint32 len);
 
 // Realtime mode stays on (so CPCEC never skips drawing a frame) but its
 // pacing sleeps become no-ops.
 #define SDL_PollEvent runner_poll
 #define SDL_Delay runner_delay
+#define SDL_QueueAudio runner_queue_audio
 #define main cpcec_main
 #include "cpcec.c"
 #undef main
+#undef SDL_QueueAudio
 #undef SDL_Delay
 #undef SDL_PollEvent
 
@@ -133,7 +136,50 @@ static struct {
 	long frames;
 	char output_dir[PATH_MAX];
 	char disk_a[PATH_MAX], disk_b[PATH_MAX], rom[PATH_MAX], input[PATH_MAX];
+	long audio_frames;
 } args;
+
+// -------------------------------------------------------------------------
+// audio capture: CPCEC queues one frame of 16-bit stereo audio per frame.
+
+static uint8_t *audio_ring;
+static size_t audio_ring_size, audio_ring_pos, audio_ring_fill;
+
+static int runner_queue_audio(SDL_AudioDeviceID dev, const void *data, Uint32 len)
+{
+	(void)dev;
+	if (!audio_ring)
+		return 0;
+	const uint8_t *p = data;
+	for (Uint32 i = 0; i < len; i++) {
+		audio_ring[audio_ring_pos] = p[i];
+		audio_ring_pos = (audio_ring_pos + 1) % audio_ring_size;
+	}
+	audio_ring_fill = audio_ring_fill + len > audio_ring_size ? audio_ring_size : audio_ring_fill + len;
+	return 0;
+}
+
+static void put_le(FILE *f, uint32_t v, int bytes)
+{
+	for (int i = 0; i < bytes; i++)
+		fputc((v >> (8 * i)) & 0xff, f);
+}
+
+static int write_wav(const char *path)
+{
+	FILE *f = fopen(path, "wb");
+	if (!f)
+		return 1;
+	uint32_t n = audio_ring_fill;
+	fwrite("RIFF", 1, 4, f), put_le(f, 36 + n, 4), fwrite("WAVEfmt ", 1, 8, f);
+	put_le(f, 16, 4), put_le(f, 1, 2), put_le(f, AUDIO_CHANNELS, 2), put_le(f, AUDIO_PLAYBACK, 4);
+	put_le(f, AUDIO_PLAYBACK * AUDIO_BYTESTEP, 4), put_le(f, AUDIO_BYTESTEP, 2), put_le(f, 16, 2);
+	fwrite("data", 1, 4, f), put_le(f, n, 4);
+	size_t start = (audio_ring_pos + audio_ring_size - n) % audio_ring_size;
+	for (uint32_t i = 0; i < n; i++)
+		fputc(audio_ring[(start + i) % audio_ring_size], f);
+	return fclose(f) != 0;
+}
 
 static void die(const char *fmt, const char *arg)
 {
@@ -389,6 +435,12 @@ static void write_artefacts(long frames_run)
 		(crtc_table[12] << 8) | crtc_table[13]);
 	if (fclose(f))
 		die("cannot write %s", path);
+
+	if (audio_ring) {
+		snprintf(path, sizeof path, "%s/audio.wav", args.output_dir);
+		if (write_wav(path))
+			die("cannot write %s", path);
+	}
 }
 
 // -------------------------------------------------------------------------
@@ -474,6 +526,8 @@ int main(int argc, char **argv)
 			absolute(args.rom, opt_value(&i, argc, argv));
 		else if (!strcmp(a, "--input"))
 			absolute(args.input, opt_value(&i, argc, argv));
+		else if (!strcmp(a, "--audio-frames"))
+			args.audio_frames = atol(opt_value(&i, argc, argv));
 		else
 			fprintf(stderr, "ignoring unknown flag %s\n", a);
 	}
@@ -520,7 +574,14 @@ int main(int argc, char **argv)
 	SDL_setenv("SDL_VIDEODRIVER", "dummy", 1);
 	SDL_setenv("SDL_AUDIODRIVER", "dummy", 1);
 
+	// Sound is only generated when audio is requested (-s on, -t stereo).
+	const char *sound_flag = "-S";
+	if (args.audio_frames > 0) {
+		sound_flag = "-st";
+		audio_ring_size = (size_t)args.audio_frames * (AUDIO_PLAYBACK / 50) * AUDIO_BYTESTEP;
+		audio_ring = calloc(1, audio_ring_size);
+	}
 	char *cpcec_argv[] = {self, (char *)model_flag, (char *)ram_flag, (char *)crtc_flag,
-		(char *)disc_flag, "-S", "-O", "-c0", "-C0", "-J", "-!", NULL};
+		(char *)disc_flag, (char *)sound_flag, "-O", "-c0", "-C0", "-J", "-!", NULL};
 	return cpcec_main(sizeof cpcec_argv / sizeof *cpcec_argv - 1, cpcec_argv);
 }
