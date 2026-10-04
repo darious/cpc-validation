@@ -1,0 +1,18 @@
+schema = 1
+name = "raster-stripes-type2"
+description = """
+Border colour changes at fixed microsecond offsets on every line (OUT timing).
+Source: src/test.asm. Expected results come from the reference emulator
+(CPCEC) via --bless.
+"""
+
+[setup]
+model = "Cpc6128"
+crtc = "Type2"
+frames = 50
+rom = "../fixtures/test.rom"
+
+[[verdict]]
+kind = "screen_image"
+golden = "goldens/screen.png"
+tolerance = 0.0

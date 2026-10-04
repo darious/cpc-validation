@@ -1,0 +1,18 @@
+schema = 1
+name = "mode-split-type0"
+description = """
+Screen mode changed on every raster interrupt (mode latch at HSYNC).
+Source: src/test.asm. Expected results come from the reference emulator
+(CPCEC) via --bless.
+"""
+
+[setup]
+model = "Cpc6128"
+crtc = "Type0"
+frames = 50
+rom = "../fixtures/test.rom"
+
+[[verdict]]
+kind = "screen_image"
+golden = "goldens/screen.png"
+tolerance = 0.0

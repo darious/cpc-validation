@@ -1,0 +1,18 @@
+schema = 1
+name = "interrupt-bands-type2"
+description = """
+Border colour cycled by an IM 1 handler from HALT (interrupt timing).
+Source: src/test.asm. Expected results come from the reference emulator
+(CPCEC) via --bless.
+"""
+
+[setup]
+model = "Cpc6128"
+crtc = "Type2"
+frames = 50
+rom = "../fixtures/test.rom"
+
+[[verdict]]
+kind = "screen_image"
+golden = "goldens/screen.png"
+tolerance = 0.0
