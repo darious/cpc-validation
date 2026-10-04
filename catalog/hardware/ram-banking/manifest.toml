@@ -1,0 +1,61 @@
+schema = 1
+name = "ram-banking"
+description = """
+RAM configuration markers (see src/test.asm) checked in every physical
+bank of the Cpc6128. Expected values come from the reference emulator
+(CPCEC) via --bless.
+"""
+
+[setup]
+model = "Cpc6128"
+crtc = "Type1"
+frames = 10
+rom = "fixtures/test.rom"
+
+[[verdict]]
+kind = "ram_bytes"
+address = 0x100
+length = 32
+hex = "0000000010000000000000003000000040000000500000006000000070000000"
+
+[[verdict]]
+kind = "ram_bytes"
+address = 0x4100
+length = 32
+hex = "0001000000110000000000000000000000000000000000000000000000000000"
+
+[[verdict]]
+kind = "ram_bytes"
+address = 0x8100
+length = 32
+hex = "0000020000001200000000000000320000004200000052000000620000007200"
+
+[[verdict]]
+kind = "ram_bytes"
+address = 0xC100
+length = 32
+hex = "0000000300000000000000000031000000000043000000530000006300000073"
+
+[[verdict]]
+kind = "ram_bytes"
+address = 0x10100
+length = 32
+hex = "0000000000000000200000000000000000410000000000000000000000000000"
+
+[[verdict]]
+kind = "ram_bytes"
+address = 0x14100
+length = 32
+hex = "0000000000000000002100000000000000000000005100000000000000000000"
+
+[[verdict]]
+kind = "ram_bytes"
+address = 0x18100
+length = 32
+hex = "0000000000000000000022000000000000000000000000000061000000000000"
+
+[[verdict]]
+kind = "ram_bytes"
+address = 0x1C100
+length = 32
+hex = "0000000000000013000000230000003300000000000000000000000000710000"

@@ -47,11 +47,12 @@ def _rewrite_manifest_values(manifest: Manifest, blessed: list[str | None]) -> N
     """
     lines = manifest.path.read_text().splitlines(keepends=True)
     table_starts = [i for i, line in enumerate(lines) if line.strip() == "[[verdict]]"]
-    for index, value in enumerate(blessed):
+    # Work backwards so inserted lines do not move tables still to be edited.
+    for index in reversed(range(len(blessed))):
+        value = blessed[index]
         if value is None or index >= len(table_starts):
             continue
-        verdict = manifest.verdicts[index]
-        key = _BLESSABLE_KEYS[verdict.kind]
+        key = _BLESSABLE_KEYS[manifest.verdicts[index].kind]
         start = table_starts[index]
         end = table_starts[index + 1] if index + 1 < len(table_starts) else len(lines)
         pattern = re.compile(rf"^(\s*{key}\s*=\s*).*$")
@@ -61,7 +62,12 @@ def _rewrite_manifest_values(manifest: Manifest, blessed: list[str | None]) -> N
                 lines[i] = f"{m.group(1)}{value}\n"
                 break
         else:
-            lines.insert(end, f"{key} = {value}\n")
+            last = end - 1
+            while last > start and not lines[last].strip():
+                last -= 1
+            if not lines[last].endswith("\n"):
+                lines[last] += "\n"
+            lines.insert(last + 1, f"{key} = {value}\n")
     manifest.path.write_text("".join(lines))
 
 

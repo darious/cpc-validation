@@ -1,0 +1,37 @@
+schema = 1
+name = "ram-banking-464"
+description = """
+RAM configuration markers (see src/test.asm) checked in every physical
+bank of the Cpc464. Expected values come from the reference emulator
+(CPCEC) via --bless.
+"""
+
+[setup]
+model = "Cpc464"
+crtc = "Type1"
+frames = 10
+rom = "../fixtures/test.rom"
+
+[[verdict]]
+kind = "ram_bytes"
+address = 0x100
+length = 32
+hex = "0000000010000000200000003000000040000000500000006000000070000000"
+
+[[verdict]]
+kind = "ram_bytes"
+address = 0x4100
+length = 32
+hex = "0001000000110000002100000031000000410000005100000061000000710000"
+
+[[verdict]]
+kind = "ram_bytes"
+address = 0x8100
+length = 32
+hex = "0000020000001200000022000000320000004200000052000000620000007200"
+
+[[verdict]]
+kind = "ram_bytes"
+address = 0xC100
+length = 32
+hex = "0000000300000013000000230000003300000043000000530000006300000073"
