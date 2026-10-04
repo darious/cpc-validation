@@ -1,0 +1,20 @@
+schema = 1
+name = "interrupt-modes"
+description = """
+Interrupt response in IM 1, IM 2 (vector from the &FF floating bus) and
+IM 0 (&FF executed as RST &38): loop counts between raster interrupts
+(src/test.asm). Expected values come from the reference emulator (CPCEC)
+via --bless.
+"""
+
+[setup]
+model = "Cpc6128"
+crtc = "Type1"
+frames = 30
+rom = "fixtures/test.rom"
+
+[[verdict]]
+kind = "ram_bytes"
+address = 0x9000
+length = 24
+hex = "28012a012a012a01290129012a012a0128012a012a012a01"
