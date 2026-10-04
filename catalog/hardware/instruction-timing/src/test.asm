@@ -9,6 +9,14 @@ irq_handler:
         org 0100h
 sub_ret:
         ret
+sub_retz_taken:
+        xor a
+        ret z
+        ret
+sub_retz_not:
+        or 1
+        ret z
+        ret
 
 main:
         ld sp,0BF00h
@@ -1030,5 +1038,827 @@ t45b:
         rra
         jr nc,t45b
         ld (RESULTS+90),de
+; [46] xor a : jr z,$+2
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t46a:
+        xor a
+        jr z,$+2
+        inc de
+        in a,(c)
+        rra
+        jr c,t46a
+t46b:
+        xor a
+        jr z,$+2
+        inc de
+        in a,(c)
+        rra
+        jr nc,t46b
+        ld (RESULTS+92),de
+; [47] or 1 : jr z,$+2
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t47a:
+        or 1
+        jr z,$+2
+        inc de
+        in a,(c)
+        rra
+        jr c,t47a
+t47b:
+        or 1
+        jr z,$+2
+        inc de
+        in a,(c)
+        rra
+        jr nc,t47b
+        ld (RESULTS+94),de
+; [48] xor a : jp z,$+3
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t48a:
+        xor a
+        jp z,$+3
+        inc de
+        in a,(c)
+        rra
+        jr c,t48a
+t48b:
+        xor a
+        jp z,$+3
+        inc de
+        in a,(c)
+        rra
+        jr nc,t48b
+        ld (RESULTS+96),de
+; [49] or 1 : jp z,$+3
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t49a:
+        or 1
+        jp z,$+3
+        inc de
+        in a,(c)
+        rra
+        jr c,t49a
+t49b:
+        or 1
+        jp z,$+3
+        inc de
+        in a,(c)
+        rra
+        jr nc,t49b
+        ld (RESULTS+98),de
+; [50] xor a : call z,sub_ret
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t50a:
+        xor a
+        call z,sub_ret
+        inc de
+        in a,(c)
+        rra
+        jr c,t50a
+t50b:
+        xor a
+        call z,sub_ret
+        inc de
+        in a,(c)
+        rra
+        jr nc,t50b
+        ld (RESULTS+100),de
+; [51] or 1 : call z,sub_ret
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t51a:
+        or 1
+        call z,sub_ret
+        inc de
+        in a,(c)
+        rra
+        jr c,t51a
+t51b:
+        or 1
+        call z,sub_ret
+        inc de
+        in a,(c)
+        rra
+        jr nc,t51b
+        ld (RESULTS+102),de
+; [52] call sub_retz_taken
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t52a:
+        call sub_retz_taken
+        inc de
+        in a,(c)
+        rra
+        jr c,t52a
+t52b:
+        call sub_retz_taken
+        inc de
+        in a,(c)
+        rra
+        jr nc,t52b
+        ld (RESULTS+104),de
+; [53] call sub_retz_not
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t53a:
+        call sub_retz_not
+        inc de
+        in a,(c)
+        rra
+        jr c,t53a
+t53b:
+        call sub_retz_not
+        inc de
+        in a,(c)
+        rra
+        jr nc,t53b
+        ld (RESULTS+106),de
+; [54] ld a,0F5h : out (0FFh),a
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t54a:
+        ld a,0F5h
+        out (0FFh),a
+        inc de
+        in a,(c)
+        rra
+        jr c,t54a
+t54b:
+        ld a,0F5h
+        out (0FFh),a
+        inc de
+        in a,(c)
+        rra
+        jr nc,t54b
+        ld (RESULTS+108),de
+; [55] ld a,0F5h : in a,(0FFh)
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t55a:
+        ld a,0F5h
+        in a,(0FFh)
+        inc de
+        in a,(c)
+        rra
+        jr c,t55a
+t55b:
+        ld a,0F5h
+        in a,(0FFh)
+        inc de
+        in a,(c)
+        rra
+        jr nc,t55b
+        ld (RESULTS+110),de
+; [56] exx : ld hl,09A00h : ld de,09C00h : ld bc,2 : ldir : exx
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t56a:
+        exx
+        ld hl,09A00h
+        ld de,09C00h
+        ld bc,2
+        ldir
+        exx
+        inc de
+        in a,(c)
+        rra
+        jr c,t56a
+t56b:
+        exx
+        ld hl,09A00h
+        ld de,09C00h
+        ld bc,2
+        ldir
+        exx
+        inc de
+        in a,(c)
+        rra
+        jr nc,t56b
+        ld (RESULTS+112),de
+; [57] exx : ld hl,09A10h : ld de,09C10h : ld bc,2 : lddr : exx
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t57a:
+        exx
+        ld hl,09A10h
+        ld de,09C10h
+        ld bc,2
+        lddr
+        exx
+        inc de
+        in a,(c)
+        rra
+        jr c,t57a
+t57b:
+        exx
+        ld hl,09A10h
+        ld de,09C10h
+        ld bc,2
+        lddr
+        exx
+        inc de
+        in a,(c)
+        rra
+        jr nc,t57b
+        ld (RESULTS+114),de
+; [58] exx : ld hl,09A00h : ld bc,2 : ld a,1 : cpir : exx
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t58a:
+        exx
+        ld hl,09A00h
+        ld bc,2
+        ld a,1
+        cpir
+        exx
+        inc de
+        in a,(c)
+        rra
+        jr c,t58a
+t58b:
+        exx
+        ld hl,09A00h
+        ld bc,2
+        ld a,1
+        cpir
+        exx
+        inc de
+        in a,(c)
+        rra
+        jr nc,t58b
+        ld (RESULTS+116),de
+; [59] ld iy,$+6 : jp (iy)
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t59a:
+        ld iy,$+6
+        jp (iy)
+        inc de
+        in a,(c)
+        rra
+        jr c,t59a
+t59b:
+        ld iy,$+6
+        jp (iy)
+        inc de
+        in a,(c)
+        rra
+        jr nc,t59b
+        ld (RESULTS+118),de
+; [60] ex de,hl : ex de,hl
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t60a:
+        ex de,hl
+        ex de,hl
+        inc de
+        in a,(c)
+        rra
+        jr c,t60a
+t60b:
+        ex de,hl
+        ex de,hl
+        inc de
+        in a,(c)
+        rra
+        jr nc,t60b
+        ld (RESULTS+120),de
+; [61] push ix : pop ix
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t61a:
+        push ix
+        pop ix
+        inc de
+        in a,(c)
+        rra
+        jr c,t61a
+t61b:
+        push ix
+        pop ix
+        inc de
+        in a,(c)
+        rra
+        jr nc,t61b
+        ld (RESULTS+122),de
+; [62] scf : ccf
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t62a:
+        scf
+        ccf
+        inc de
+        in a,(c)
+        rra
+        jr c,t62a
+t62b:
+        scf
+        ccf
+        inc de
+        in a,(c)
+        rra
+        jr nc,t62b
+        ld (RESULTS+124),de
+; [63] cpl
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t63a:
+        cpl
+        inc de
+        in a,(c)
+        rra
+        jr c,t63a
+t63b:
+        cpl
+        inc de
+        in a,(c)
+        rra
+        jr nc,t63b
+        ld (RESULTS+126),de
+; [64] rrd
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t64a:
+        rrd
+        inc de
+        in a,(c)
+        rra
+        jr c,t64a
+t64b:
+        rrd
+        inc de
+        in a,(c)
+        rra
+        jr nc,t64b
+        ld (RESULTS+128),de
+; [65] sla (hl)
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t65a:
+        sla (hl)
+        inc de
+        in a,(c)
+        rra
+        jr c,t65a
+t65b:
+        sla (hl)
+        inc de
+        in a,(c)
+        rra
+        jr nc,t65b
+        ld (RESULTS+130),de
+; [66] bit 7,(hl)
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t66a:
+        bit 7,(hl)
+        inc de
+        in a,(c)
+        rra
+        jr c,t66a
+t66b:
+        bit 7,(hl)
+        inc de
+        in a,(c)
+        rra
+        jr nc,t66b
+        ld (RESULTS+132),de
+; [67] res 0,(hl)
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t67a:
+        res 0,(hl)
+        inc de
+        in a,(c)
+        rra
+        jr c,t67a
+t67b:
+        res 0,(hl)
+        inc de
+        in a,(c)
+        rra
+        jr nc,t67b
+        ld (RESULTS+134),de
+; [68] inc (ix+0)
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t68a:
+        inc (ix+0)
+        inc de
+        in a,(c)
+        rra
+        jr c,t68a
+t68b:
+        inc (ix+0)
+        inc de
+        in a,(c)
+        rra
+        jr nc,t68b
+        ld (RESULTS+136),de
+; [69] add a,(ix+0)
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t69a:
+        add a,(ix+0)
+        inc de
+        in a,(c)
+        rra
+        jr c,t69a
+t69b:
+        add a,(ix+0)
+        inc de
+        in a,(c)
+        rra
+        jr nc,t69b
+        ld (RESULTS+138),de
+; [70] sub (hl)
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t70a:
+        sub (hl)
+        inc de
+        in a,(c)
+        rra
+        jr c,t70a
+t70b:
+        sub (hl)
+        inc de
+        in a,(c)
+        rra
+        jr nc,t70b
+        ld (RESULTS+140),de
+; [71] adc a,1
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t71a:
+        adc a,1
+        inc de
+        in a,(c)
+        rra
+        jr c,t71a
+t71b:
+        adc a,1
+        inc de
+        in a,(c)
+        rra
+        jr nc,t71b
+        ld (RESULTS+142),de
+; [72] ld (0A000h),hl : ld hl,(0A000h)
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t72a:
+        ld (0A000h),hl
+        ld hl,(0A000h)
+        inc de
+        in a,(c)
+        rra
+        jr c,t72a
+t72b:
+        ld (0A000h),hl
+        ld hl,(0A000h)
+        inc de
+        in a,(c)
+        rra
+        jr nc,t72b
+        ld (RESULTS+144),de
+; [73] ld (0A000h),de : ld de,(0A000h)
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t73a:
+        ld (0A000h),de
+        ld de,(0A000h)
+        inc de
+        in a,(c)
+        rra
+        jr c,t73a
+t73b:
+        ld (0A000h),de
+        ld de,(0A000h)
+        inc de
+        in a,(c)
+        rra
+        jr nc,t73b
+        ld (RESULTS+146),de
+; [74] ld sp,ix : ld sp,0BF00h
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t74a:
+        ld sp,ix
+        ld sp,0BF00h
+        inc de
+        in a,(c)
+        rra
+        jr c,t74a
+t74b:
+        ld sp,ix
+        ld sp,0BF00h
+        inc de
+        in a,(c)
+        rra
+        jr nc,t74b
+        ld (RESULTS+148),de
+; [75] ex (sp),ix : ex (sp),ix
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t75a:
+        ex (sp),ix
+        ex (sp),ix
+        inc de
+        in a,(c)
+        rra
+        jr c,t75a
+t75b:
+        ex (sp),ix
+        ex (sp),ix
+        inc de
+        in a,(c)
+        rra
+        jr nc,t75b
+        ld (RESULTS+150),de
+; [76] im 2 : im 1
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t76a:
+        im 2
+        im 1
+        inc de
+        in a,(c)
+        rra
+        jr c,t76a
+t76b:
+        im 2
+        im 1
+        inc de
+        in a,(c)
+        rra
+        jr nc,t76b
+        ld (RESULTS+152),de
+; [77] ld r,a
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t77a:
+        ld r,a
+        inc de
+        in a,(c)
+        rra
+        jr c,t77a
+t77b:
+        ld r,a
+        inc de
+        in a,(c)
+        rra
+        jr nc,t77b
+        ld (RESULTS+154),de
+; [78] rlc (ix+0)
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t78a:
+        rlc (ix+0)
+        inc de
+        in a,(c)
+        rra
+        jr c,t78a
+t78b:
+        rlc (ix+0)
+        inc de
+        in a,(c)
+        rra
+        jr nc,t78b
+        ld (RESULTS+156),de
+; [79] res 7,(ix+1)
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t79a:
+        res 7,(ix+1)
+        inc de
+        in a,(c)
+        rra
+        jr c,t79a
+t79b:
+        res 7,(ix+1)
+        inc de
+        in a,(c)
+        rra
+        jr nc,t79b
+        ld (RESULTS+158),de
+; [80] ld b,(ix+0) : ld b,0F5h
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t80a:
+        ld b,(ix+0)
+        ld b,0F5h
+        inc de
+        in a,(c)
+        rra
+        jr c,t80a
+t80b:
+        ld b,(ix+0)
+        ld b,0F5h
+        inc de
+        in a,(c)
+        rra
+        jr nc,t80b
+        ld (RESULTS+160),de
+; [81] ld (ix+2),b
+        call wait_vsync
+        ld bc,07F99h    ; MRER with bit 4: reset the interrupt counter
+        out (c),c
+        ei
+        halt
+        ld b,0F5h
+        ld de,0
+t81a:
+        ld (ix+2),b
+        inc de
+        in a,(c)
+        rra
+        jr c,t81a
+t81b:
+        ld (ix+2),b
+        inc de
+        in a,(c)
+        rra
+        jr nc,t81b
+        ld (RESULTS+162),de
 done:
         jr done

@@ -2,7 +2,7 @@ schema = 1
 name = "instruction-timing-type2"
 description = """
 Direct-boot ROM measuring instruction timing against the raster. For each
-of 46 instruction sequences it counts loop iterations between two VSYNC
+of 82 instruction sequences it counts loop iterations between two VSYNC
 starts, beginning each at a raster interrupt; the counts change with every microsecond of instruction time and
 with the point inside IN A,(C) at which VSYNC is sampled. Expected values
 come from the reference emulator (CPCEC) via --bless.
@@ -11,11 +11,11 @@ come from the reference emulator (CPCEC) via --bless.
 [setup]
 model = "Cpc6128"
 crtc = "Type2"
-frames = 200
+frames = 360
 rom = "../fixtures/test.rom"
 
 [[verdict]]
 kind = "ram_bytes"
 address = 0x9000
-length = 92
-hex = "dd056005600560059b049b04cb03ef024d044d040804f6040804cb03cb034d049b049b049503cb03f604f604600560056005dd05f604f604f60460059b049b0408040804cb030804cb03dd059b044d046005dd05f604cb0395039503"
+length = 164
+hex = "dd056005600560059b049b04cb03ef024d044d040804f6040804cb03cb034d049b049b049503cb03f604f604600560056005dd05f604f604f60460059b049b0408040804cb030804cb03dd059b044d046005dd05f604cb03950395039b049b049b044d0465034d043a03ef024d044d040402040227020804600565036005dd054d049b04f6049b0408044d04600560053a03ef020804b0029b04f604cb03cb03cb034d04"
