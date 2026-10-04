@@ -25,7 +25,7 @@ Semantics:
 |----------------|----------|----------------------------------------------------------------------|
 | `--model`      | yes      | CPC variant to emulate.                                              |
 | `--crtc`       | yes      | CRTC variant. Runners that cannot emulate a given CRTC SHOULD exit non-zero. |
-| `--frames`     | yes      | Number of 50 Hz frames to emulate after any input script completes.  |
+| `--frames`     | yes      | Number of video frames to emulate after any input script completes. A frame ends at the monitor's vertical sync (every 19968 µs on a standard screen). |
 | `--output-dir` | yes      | Directory the runner writes artefacts into. Created if missing.      |
 | `--disk-a`     | no       | DSK image inserted in drive A before the run.                        |
 | `--disk-b`     | no       | DSK image inserted in drive B.                                       |
@@ -40,12 +40,33 @@ are ignored.
 | Directive               | Meaning                                                                 |
 |-------------------------|-------------------------------------------------------------------------|
 | `sleep N`               | Run N frames with no input.                                             |
-| `type_text TEXT`        | Synthesize keypresses to type TEXT. `\n` becomes Enter.                 |
-| `key_press NAME`        | Hold the named CPC key. Names come from the runner's key table.         |
+| `type_text TEXT`        | Type TEXT. The two characters `\n` type Enter.                          |
+| `key_press NAME`        | Hold the named CPC key (see the key table below).                       |
 | `key_release NAME`      | Release the named CPC key.                                              |
 
-Runners SHOULD interpret `type_text` using their own host-key-to-CPC-key
-mapping. The harness does not prescribe a key map.
+`type_text` holds each key (with Shift where needed) for 2 frames, then
+releases it for 1 frame, so typing N characters takes 3N frames. Letters,
+digits, space and `:;,.-/@^[]\` are typed unshifted; `!"#$%&'()` are Shift
+with 1-9, `_` is Shift+0, `=` Shift+Minus, `+` Shift+Semicolon, `*`
+Shift+Colon, `?` Shift+Slash, `>` Shift+Period, `<` Shift+Comma, `|`
+Shift+At and `{` `}` Shift with the brackets.
+
+### Key names
+
+Names and their keyboard matrix positions (line.bit):
+
+| Line | bit 0 | bit 1 | bit 2 | bit 3 | bit 4 | bit 5 | bit 6 | bit 7 |
+|------|-------|-------|-------|-------|-------|-------|-------|-------|
+| 0 | ArrowUp | ArrowRight | ArrowDown | Numpad9 | Numpad6 | Numpad3 | NumpadEnter | NumpadPeriod |
+| 1 | ArrowLeft | Copy | Numpad7 | Numpad8 | Numpad5 | Numpad1 | Numpad2 | Numpad0 |
+| 2 | Clear | BracketLeft | Enter | BracketRight | Numpad4 | Shift | Backslash | Control |
+| 3 | Caret | Minus | At | P | Semicolon | Colon | Slash | Period |
+| 4 | Key0 | Key9 | O | I | L | K | M | Comma |
+| 5 | Key8 | Key7 | U | Y | H | J | N | Space |
+| 6 | Key6 | Key5 | R | T | G | F | B | V |
+| 7 | Key4 | Key3 | E | W | S | D | C | X |
+| 8 | Key1 | Key2 | Escape | Q | Tab | A | CapsLock | Z |
+| 9 | JoystickUp | JoystickDown | JoystickLeft | JoystickRight | JoystickFire1 | JoystickFire2 | JoystickFire3 | Delete |
 
 ## Output artefacts
 
@@ -78,8 +99,21 @@ After the run finishes, the runner MUST have written these files under
 
 ### `screen.png`
 
-Final framebuffer as PNG. Resolution is emulator-defined and is reported in
-`meta.json`.
+The last complete frame, in the canonical screen format so that images from
+different emulators can be compared pixel for pixel:
+
+- 768x536 pixels: a window 48 µs wide (16 pixels per µs, i.e. mode 2
+  resolution) and 268 scanlines tall, every scanline drawn twice.
+- For the firmware's standard screen (R0=63, R1=40, R2=46, R3=&8E, R4=38,
+  R6=25, R7=30, R9=7) the 640x400 bitmap starts at x=64, y=76: 4 characters
+  of border left and right, 38 scanlines above and 30 below.
+- Colours use the conventional levels 0x00, 0x80 and 0xFF per channel for
+  the 27 hardware colours; blanking (sync) is black.
+
+The reference runner (CPCEC) defines the window; other runners crop or
+offset their own frame to match it.
+
+Runners MAY add keys; the bundled runners add `"emulator"`.
 
 ### `ram.bin`
 
