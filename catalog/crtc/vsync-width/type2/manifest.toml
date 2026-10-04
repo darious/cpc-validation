@@ -1,0 +1,18 @@
+schema = 1
+name = "crtc-vsync-width-type2"
+description = """
+Interrupt bands with a 2-line VSYNC (R3=&28).
+Source: src/test.asm. Expected results come from the reference emulator
+(CPCEC) via --bless.
+"""
+
+[setup]
+model = "Cpc6128"
+crtc = "Type2"
+frames = 50
+rom = "../fixtures/test.rom"
+
+[[verdict]]
+kind = "screen_image"
+golden = "goldens/screen.png"
+tolerance = 0.0

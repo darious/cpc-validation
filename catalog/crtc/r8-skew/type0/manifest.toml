@@ -1,0 +1,18 @@
+schema = 1
+name = "crtc-r8-skew-type0"
+description = """
+R8 display skew/disable/interlace changed on every raster interrupt.
+Source: src/test.asm. Expected results come from the reference emulator
+(CPCEC) via --bless.
+"""
+
+[setup]
+model = "Cpc6128"
+crtc = "Type0"
+frames = 50
+rom = "../fixtures/test.rom"
+
+[[verdict]]
+kind = "screen_image"
+golden = "goldens/screen.png"
+tolerance = 0.0
