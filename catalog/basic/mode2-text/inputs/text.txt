@@ -1,0 +1,5 @@
+# Mode 2 text with windows, inverse video and the full character set.
+sleep 150
+type_text MODE 2:FOR C=32 TO 255:PRINT CHR$(C);:NEXT:PRINT\n
+type_text WINDOW#1,40,80,15,25:PAPER#1,1:PEN#1,0:CLS#1:PRINT#1,"WINDOW 1"\n
+type_text LOCATE 1,20:PRINT "Mode 2 text OK"\n

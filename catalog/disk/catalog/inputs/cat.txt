@@ -1,0 +1,3 @@
+# Catalogue the AmstradDiag disk.
+sleep 150
+type_text CAT\n

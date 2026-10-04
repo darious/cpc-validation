@@ -20,39 +20,54 @@ MODE2_COLS = 80
 TEXT_ROWS = 25
 
 
-def decode_screen(ram: bytes, screen_mode: int) -> list[str] | None:
-    """Return 25 strings of column-count chars each, or None for unsupported modes."""
+def decode_screen(ram: bytes, screen_mode: int, screen_ma: int | None = None) -> list[str] | None:
+    """Return 25 strings of column-count chars each, or None for unsupported modes.
+
+    screen_ma is the CRTC start address (R12 << 8 | R13). It selects the 16K
+    page and the start offset, which the firmware moves when it scrolls the
+    screen in hardware. Without it the default screen at &C000 is assumed.
+    """
+    if screen_ma is None:
+        base, offset = DEFAULT_SCREEN_BASE, 0
+    else:
+        base = ((screen_ma >> 12) & 3) * 0x4000
+        offset = (screen_ma & 0x3FF) * 2
     if screen_mode == 1:
-        return _decode_mode1(ram, DEFAULT_SCREEN_BASE)
+        return _decode_mode1(ram, base, offset)
     if screen_mode == 2:
-        return _decode_mode2(ram, DEFAULT_SCREEN_BASE)
+        return _decode_mode2(ram, base, offset)
     return None
 
 
-def decode_screen_text(ram: bytes, screen_mode: int) -> str:
+def _cell_addr(base: int, offset: int, sub: int, byte_offset: int) -> int:
+    # Each character line wraps within its 2K block.
+    return base + sub * 0x800 + ((offset + byte_offset) & 0x7FF)
+
+
+def decode_screen_text(ram: bytes, screen_mode: int, screen_ma: int | None = None) -> str:
     """Return the screen contents as a single newline-joined string.
 
     Unsupported modes yield an empty string. Trailing spaces on each line are
     stripped to make `contains` and `regex` verdicts insensitive to padding.
     """
-    rows = decode_screen(ram, screen_mode)
+    rows = decode_screen(ram, screen_mode, screen_ma)
     if rows is None:
         return ""
     return "\n".join(r.rstrip() for r in rows)
 
 
-def _decode_mode1(ram: bytes, base: int) -> list[str]:
+def _decode_mode1(ram: bytes, base: int, offset: int = 0) -> list[str]:
     rows: list[str] = []
     for char_row in range(TEXT_ROWS):
         line: list[str] = []
         for col in range(MODE1_COLS):
-            glyph = _read_cell_mode1(ram, base, char_row, col)
+            glyph = _read_cell_mode1(ram, base, offset, char_row, col)
             line.append(GLYPHS.get(glyph, "?"))
         rows.append("".join(line))
     return rows
 
 
-def _decode_mode2(ram: bytes, base: int) -> list[str]:
+def _decode_mode2(ram: bytes, base: int, offset: int = 0) -> list[str]:
     # Mode 2: 80x25 chars, 8 pixels per byte (1bpp), one byte per char cell row.
     rows: list[str] = []
     for char_row in range(TEXT_ROWS):
@@ -60,7 +75,7 @@ def _decode_mode2(ram: bytes, base: int) -> list[str]:
         for col in range(MODE2_COLS):
             out = bytearray(8)
             for sub in range(8):
-                addr = base + sub * 0x800 + char_row * 80 + col
+                addr = _cell_addr(base, offset, sub, char_row * 80 + col)
                 if addr >= len(ram):
                     out[sub] = 0
                 else:
@@ -70,15 +85,16 @@ def _decode_mode2(ram: bytes, base: int) -> list[str]:
     return rows
 
 
-def _read_cell_mode1(ram: bytes, base: int, char_row: int, col: int) -> bytes:
+def _read_cell_mode1(ram: bytes, base: int, offset: int, char_row: int, col: int) -> bytes:
     """Read one 8x8 cell and return its glyph signature (8 bytes, MSB first)."""
     out = bytearray(8)
     for sub in range(8):
-        addr = base + sub * 0x800 + char_row * 80 + col * 2
-        if addr + 2 > len(ram):
+        addr = _cell_addr(base, offset, sub, char_row * 80 + col * 2)
+        addr2 = _cell_addr(base, offset, sub, char_row * 80 + col * 2 + 1)
+        if max(addr, addr2) >= len(ram):
             return bytes(8)
         b0 = ram[addr]
-        b1 = ram[addr + 1]
+        b1 = ram[addr2]
         out[sub] = _mode1_row_bits(b0, b1)
     return bytes(out)
 

@@ -1,0 +1,5 @@
+# Type every printable symbol through the keyboard matrix and the firmware.
+sleep 150
+type_text PRINT "Hello, CPC! #$%&'()*+-./:;<=>?@[\]^_{|}"\n
+type_text PRINT 2^10, 7/2, -3*4+1\n
+type_text PRINT LOWER$("ABC");UPPER$("xyz")\n

@@ -1,0 +1,21 @@
+schema = 1
+name = "basic-mode2-text"
+description = """
+MODE 2: the full character set, a text window with swapped pen/paper, and
+LOCATE. The text check uses the mode 2 OCR.
+"""
+
+[setup]
+model = "Cpc6128"
+crtc = "Type1"
+frames = 100
+input = "inputs/text.txt"
+
+[[verdict]]
+kind = "screen_text_contains"
+needle = "Mode 2 text OK"
+
+[[verdict]]
+kind = "screen_image"
+golden = "goldens/screen.png"
+tolerance = 0.0

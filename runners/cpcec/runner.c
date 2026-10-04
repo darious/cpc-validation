@@ -219,7 +219,9 @@ static int char_key(int c, int *shift)
 		"BracketLeft", "BracketRight"};
 	char name[8];
 	*shift = 0;
-	if (c >= 'a' && c <= 'z')
+	if (c >= 'A' && c <= 'Z')
+		*shift = 1;
+	else if (c >= 'a' && c <= 'z')
 		c -= 32;
 	if (c >= 'A' && c <= 'Z')
 		return name[0] = c, name[1] = 0, key_code(name);
@@ -251,7 +253,7 @@ static void push_op(enum op_kind kind, int value)
 	ops[op_count].kind = kind, ops[op_count++].value = value;
 }
 
-// type_text holds each key for 2 frames and then releases it for 1 frame.
+// type_text holds each key for 2 frames and then releases it for 2 frames.
 // The two-character sequence \n types Enter.
 static void push_text(const char *text)
 {
@@ -271,7 +273,7 @@ static void push_text(const char *text)
 		push_op(OP_RELEASE, code);
 		if (shift)
 			push_op(OP_RELEASE, 0x15);
-		push_op(OP_SLEEP, 1);
+		push_op(OP_SLEEP, 2);
 	}
 }
 
@@ -381,8 +383,10 @@ static void write_artefacts(long frames_run)
 	fprintf(f,
 		"{\n  \"model\": \"%s\",\n  \"crtc\": \"%s\",\n  \"frames_run\": %ld,\n"
 		"  \"exit\": \"frames_complete\",\n  \"ram_size\": %d,\n  \"screen_mode\": %d,\n"
-		"  \"screen\": { \"width\": %d, \"height\": %d },\n  \"emulator\": \"cpcec\"\n}\n",
-		args.model, args.crtc, frames_run, ram_size, gate_mcr & 3, CANON_W, CANON_H);
+		"  \"screen\": { \"width\": %d, \"height\": %d },\n  \"screen_ma\": %d,\n"
+		"  \"emulator\": \"cpcec\"\n}\n",
+		args.model, args.crtc, frames_run, ram_size, gate_mcr & 3, CANON_W, CANON_H,
+		(crtc_table[12] << 8) | crtc_table[13]);
 	if (fclose(f))
 		die("cannot write %s", path);
 }

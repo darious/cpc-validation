@@ -1,0 +1,32 @@
+# Enter a program line, then fix it with the line editor: DEL, cursor keys
+# and COPY are exercised through key_press/key_release.
+sleep 150
+type_text 10 PRINT "WRONG"\n
+type_text EDIT 10\n
+sleep 5
+key_press ArrowRight
+sleep 60
+key_release ArrowRight
+key_press Delete
+sleep 2
+key_release Delete
+sleep 1
+type_text RIGHT"
+key_press Delete
+sleep 2
+key_release Delete
+sleep 1
+key_press Delete
+sleep 2
+key_release Delete
+sleep 1
+key_press Delete
+sleep 2
+key_release Delete
+sleep 1
+key_press Enter
+sleep 2
+key_release Enter
+sleep 5
+type_text LIST\n
+type_text RUN\n

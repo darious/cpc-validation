@@ -1,0 +1,5 @@
+# Mode 0 graphics: filled colour bars and lines in all 16 pens.
+sleep 150
+type_text MODE 0:FOR P=0 TO 15:FOR Y=0 TO 15 STEP 2:MOVE P*40,Y+300:DRAW P*40+38,Y+300,P:NEXT:NEXT\n
+type_text FOR I=0 TO 15:MOVE 0,0:DRAW 639,I*16,I:NEXT\n
+type_text PEN 3:PRINT "MODE 0":PLOT 320,200,1:DRAWR 50,-50,2\n

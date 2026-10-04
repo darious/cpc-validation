@@ -1,0 +1,17 @@
+schema = 1
+name = "basic-line-editing"
+description = """
+Uses the firmware line editor (EDIT, cursor right with key repeat, DEL) to
+change a program line, then lists and runs it.
+"""
+
+[setup]
+model = "Cpc6128"
+crtc = "Type1"
+frames = 30
+input = "inputs/edit.txt"
+
+[[verdict]]
+kind = "screen_image"
+golden = "goldens/screen.png"
+tolerance = 0.0

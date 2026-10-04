@@ -45,8 +45,11 @@ are ignored.
 | `key_release NAME`      | Release the named CPC key.                                              |
 
 `type_text` holds each key (with Shift where needed) for 2 frames, then
-releases it for 1 frame, so typing N characters takes 3N frames. Letters,
-digits, space and `:;,.-/@^[]\` are typed unshifted; `!"#$%&'()` are Shift
+releases it for 2 frames, so typing N characters takes 4N frames. (A single
+release frame can fall between two firmware keyboard scans, losing the
+second of two identical characters.) Capital
+letters are typed with Shift; lower-case letters, digits, space and
+`:;,.-/@^[]\` are typed unshifted; `!"#$%&'()` are Shift
 with 1-9, `_` is Shift+0, `=` Shift+Minus, `+` Shift+Semicolon, `*`
 Shift+Colon, `?` Shift+Slash, `>` Shift+Period, `<` Shift+Comma, `|`
 Shift+At and `{` `}` Shift with the brackets.
@@ -95,6 +98,7 @@ After the run finishes, the runner MUST have written these files under
 | `exit`         | `frames_complete`, `trap`, or `error: <reason>`.                                                   |
 | `ram_size`     | Length in bytes of `ram.bin`. 65536 for 464/664, 131072 for 6128.                                  |
 | `screen_mode`  | Last-known CPC screen mode (0, 1, or 2). Used by OCR verdicts.                                     |
+| `screen_ma`    | Optional. CRTC start address, `R12 << 8 \| R13`. Lets OCR follow hardware scrolling; without it OCR assumes the unscrolled screen at &C000. |
 | `screen`       | Pixel dimensions of `screen.png`.                                                                  |
 
 ### `screen.png`

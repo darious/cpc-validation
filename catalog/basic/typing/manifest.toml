@@ -1,0 +1,29 @@
+schema = 1
+name = "basic-typing"
+description = """
+Types BASIC lines containing every printable symbol: checks the key names,
+Shift handling, firmware keyboard scanning and BASIC evaluation.
+"""
+
+[setup]
+model = "Cpc6128"
+crtc = "Type1"
+frames = 30
+input = "inputs/type.txt"
+
+[[verdict]]
+kind = "screen_text_contains"
+needle = "Hello, CPC! #$%&'()*+-./:;<=>?@[\\]^_{|}"
+
+[[verdict]]
+kind = "screen_text_regex"
+pattern = "1024\\s+3\\.5\\s+-11"
+
+[[verdict]]
+kind = "screen_text_contains"
+needle = "abcXYZ"
+
+[[verdict]]
+kind = "screen_image"
+golden = "goldens/screen.png"
+tolerance = 0.0

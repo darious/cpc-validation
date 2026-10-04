@@ -1,0 +1,11 @@
+# Save a program to a blank disk, clear memory, load it back, run it and
+# catalogue the disk.
+sleep 150
+type_text 10 FOR I=1 TO 3:PRINT "SAVED OK";I:NEXT\n
+type_text SAVE "PROG"\n
+sleep 300
+type_text NEW\n
+type_text LOAD "PROG"\n
+sleep 300
+type_text RUN\n
+type_text CAT\n

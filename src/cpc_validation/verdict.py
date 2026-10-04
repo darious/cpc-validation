@@ -217,8 +217,9 @@ def _write_diff_png(actual: Image.Image, golden: Image.Image, out_path: Path) ->
 
 def _screen_text(verdict: Verdict, artefacts: RunArtefacts) -> str | None:
     mode = int(artefacts.meta.get("screen_mode", -1))
+    ma = artefacts.meta.get("screen_ma")
     ram = artefacts.ram_path.read_bytes()
-    text = ocr.decode_screen_text(ram, mode)
+    text = ocr.decode_screen_text(ram, mode, int(ma) if ma is not None else None)
     if text == "":
         return None
     return text

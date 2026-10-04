@@ -1,0 +1,24 @@
+schema = 1
+name = "disk-catalog"
+description = """
+CAT on the AmstradDiag disk (6128): AMSDOS reads the directory through the
+FDC and prints the file list and free space.
+Requires catalog/amstrad-diagnostics/fixtures/AmstradDiag.dsk
+(./scripts/fetch-amstrad-diag.sh).
+"""
+
+[setup]
+model = "Cpc6128"
+crtc = "Type1"
+frames = 300
+disks = ["../../amstrad-diagnostics/fixtures/AmstradDiag.dsk"]
+input = "inputs/cat.txt"
+
+[[verdict]]
+kind = "screen_text_contains"
+needle = "DIAG"
+
+[[verdict]]
+kind = "screen_image"
+golden = "goldens/screen.png"
+tolerance = 0.0

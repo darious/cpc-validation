@@ -1,0 +1,17 @@
+schema = 1
+name = "basic-mode0-graphics"
+description = """
+MODE 0 graphics drawn by the firmware: bars and lines in every pen, text
+and relative drawing.
+"""
+
+[setup]
+model = "Cpc6128"
+crtc = "Type1"
+frames = 400
+input = "inputs/draw.txt"
+
+[[verdict]]
+kind = "screen_image"
+golden = "goldens/screen.png"
+tolerance = 0.0

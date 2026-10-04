@@ -157,11 +157,21 @@ fn step_frames(
 
 fn type_char(driver: &mut Driver, video: &mut CaptureVideo, audio: &mut NullAudio, c: char) {
     let (key, shift) = match c {
-        'A'..='Z' => (c.to_string(), false),
+        'A'..='Z' => (c.to_string(), true),
         'a'..='z' => (c.to_ascii_uppercase().to_string(), false),
         '0'..='9' => (format!("Key{c}"), false),
         ' ' => ("Space".to_string(), false),
         '\n' => ("Enter".to_string(), false),
+        '_' => ("Key0".to_string(), true),
+        '=' => ("Minus".to_string(), true),
+        '+' => ("Semicolon".to_string(), true),
+        '*' => ("Colon".to_string(), true),
+        '?' => ("Slash".to_string(), true),
+        '>' => ("Period".to_string(), true),
+        '<' => ("Comma".to_string(), true),
+        '|' => ("At".to_string(), true),
+        '{' => ("BracketLeft".to_string(), true),
+        '}' => ("BracketRight".to_string(), true),
         '"' => ("Key2".to_string(), true),
         ':' => ("Colon".to_string(), false),
         ';' => ("Semicolon".to_string(), false),
@@ -197,7 +207,7 @@ fn type_char(driver: &mut Driver, video: &mut CaptureVideo, audio: &mut NullAudi
     if shift {
         driver.release_key("Shift");
     }
-    step_frames(driver, video, audio, 1);
+    step_frames(driver, video, audio, 2);
 }
 
 fn run_input_script(
@@ -218,10 +228,11 @@ fn run_input_script(
                 frames_used += n;
             }
         } else if let Some(rest) = line.strip_prefix("type_text ") {
-            let text = rest;
+            let text = rest.replace("\\n", "\n");
+            let text = text.as_str();
             for c in text.chars() {
                 type_char(driver, video, audio, c);
-                frames_used += 3;
+                frames_used += 4;
             }
         } else if let Some(rest) = line.strip_prefix("key_press ") {
             driver.press_key(rest.trim());
@@ -311,6 +322,7 @@ fn main() {
     let dbg = driver.debug_view();
     let ram = dbg.memory.composite_ram.clone();
     let screen_mode = dbg.gate_array.current_screen_mode;
+    let screen_ma = (dbg.crtc.registers[12] as u16) << 8 | dbg.crtc.registers[13] as u16;
 
     std::fs::write(args.output_dir.join("ram.bin"), &ram).expect("write ram.bin");
 
@@ -321,6 +333,7 @@ fn main() {
         "exit": "frames_complete",
         "ram_size": ram.len(),
         "screen_mode": screen_mode,
+        "screen_ma": screen_ma,
         "screen": { "width": SCREEN_BUFFER_WIDTH, "height": CANONICAL_HEIGHT },
         "emulator": "ronald",
     });
