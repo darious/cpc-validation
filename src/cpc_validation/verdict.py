@@ -19,6 +19,8 @@ class VerdictOutcome:
     verdict: Verdict
     passed: bool
     reason: str
+    # Replacement for the verdict's expected value when blessing (TOML literal).
+    blessed: str | None = None
 
 
 def evaluate(
@@ -26,7 +28,41 @@ def evaluate(
     artefacts: RunArtefacts,
     bless: bool = False,
 ) -> list[VerdictOutcome]:
-    return [_evaluate_one(manifest, v, artefacts, bless) for v in manifest.verdicts]
+    outcomes = [_evaluate_one(manifest, v, artefacts, bless) for v in manifest.verdicts]
+    blessed = [o.blessed for o in outcomes]
+    if any(b is not None for b in blessed):
+        _rewrite_manifest_values(manifest, blessed)
+    return outcomes
+
+
+# Keys holding expected RAM values that --bless can fill in, per verdict kind.
+_BLESSABLE_KEYS = {"ram_hash": "sha256", "ram_bytes": "hex", "ram_byte": "value"}
+
+
+def _rewrite_manifest_values(manifest: Manifest, blessed: list[str | None]) -> None:
+    """Write blessed RAM expectations back into the manifest file.
+
+    Each [[verdict]] table is located in source order; the expected-value line
+    of a blessed verdict is replaced in place, keeping the rest of the file.
+    """
+    lines = manifest.path.read_text().splitlines(keepends=True)
+    table_starts = [i for i, line in enumerate(lines) if line.strip() == "[[verdict]]"]
+    for index, value in enumerate(blessed):
+        if value is None or index >= len(table_starts):
+            continue
+        verdict = manifest.verdicts[index]
+        key = _BLESSABLE_KEYS[verdict.kind]
+        start = table_starts[index]
+        end = table_starts[index + 1] if index + 1 < len(table_starts) else len(lines)
+        pattern = re.compile(rf"^(\s*{key}\s*=\s*).*$")
+        for i in range(start + 1, end):
+            m = pattern.match(lines[i].rstrip("\n"))
+            if m:
+                lines[i] = f"{m.group(1)}{value}\n"
+                break
+        else:
+            lines.insert(end, f"{key} = {value}\n")
+    manifest.path.write_text("".join(lines))
 
 
 def _evaluate_one(
@@ -38,9 +74,11 @@ def _evaluate_one(
     try:
         match verdict.kind:
             case "ram_byte":
-                return _ram_byte(verdict, artefacts)
+                return _ram_byte(verdict, artefacts, bless)
             case "ram_hash":
-                return _ram_hash(verdict, artefacts)
+                return _ram_hash(verdict, artefacts, bless)
+            case "ram_bytes":
+                return _ram_bytes(verdict, artefacts, bless)
             case "screen_image":
                 return _screen_image(manifest, verdict, artefacts, bless)
             case "screen_text_contains":
@@ -53,16 +91,19 @@ def _evaluate_one(
         return VerdictOutcome(verdict, False, f"verdict raised: {e}")
 
 
-def _ram_byte(verdict: Verdict, artefacts: RunArtefacts) -> VerdictOutcome:
+def _ram_byte(verdict: Verdict, artefacts: RunArtefacts, bless: bool) -> VerdictOutcome:
     address = _require_int(verdict, "address")
-    expected = _require_int(verdict, "value") & 0xFF
-
     data = artefacts.ram_path.read_bytes()
     if not 0 <= address < len(data):
         return VerdictOutcome(
             verdict, False, f"address 0x{address:X} out of range (ram size {len(data)})"
         )
     actual = data[address]
+    if bless:
+        return VerdictOutcome(
+            verdict, True, f"blessed ram[0x{address:X}] = 0x{actual:02X}", f"0x{actual:02X}"
+        )
+    expected = _require_int(verdict, "value") & 0xFF
     if actual == expected:
         return VerdictOutcome(verdict, True, f"ram[0x{address:X}] = 0x{actual:02X}")
     return VerdictOutcome(
@@ -70,22 +111,53 @@ def _ram_byte(verdict: Verdict, artefacts: RunArtefacts) -> VerdictOutcome:
     )
 
 
-def _ram_hash(verdict: Verdict, artefacts: RunArtefacts) -> VerdictOutcome:
+def _ram_hash(verdict: Verdict, artefacts: RunArtefacts, bless: bool) -> VerdictOutcome:
     rng = verdict.params.get("range")
     if not isinstance(rng, list) or len(rng) != 2:
         return VerdictOutcome(verdict, False, "ram_hash.range must be [start, end]")
-    expected = verdict.params.get("sha256")
-    if not isinstance(expected, str):
-        return VerdictOutcome(verdict, False, "ram_hash.sha256 must be a string")
     start, end = int(rng[0]), int(rng[1])
 
     data = artefacts.ram_path.read_bytes()
     if not 0 <= start < end <= len(data):
         return VerdictOutcome(verdict, False, f"range {start:X}..{end:X} out of bounds")
     actual = hashlib.sha256(data[start:end]).hexdigest()
+    if bless:
+        return VerdictOutcome(verdict, True, f"blessed sha256 = {actual}", f'"{actual}"')
+    expected = verdict.params.get("sha256")
+    if not isinstance(expected, str):
+        return VerdictOutcome(verdict, False, "ram_hash.sha256 must be a string")
     if actual == expected:
         return VerdictOutcome(verdict, True, f"sha256 = {actual}")
     return VerdictOutcome(verdict, False, f"sha256 {actual} != expected {expected}")
+
+
+def _ram_bytes(verdict: Verdict, artefacts: RunArtefacts, bless: bool) -> VerdictOutcome:
+    address = _require_int(verdict, "address")
+    data = artefacts.ram_path.read_bytes()
+    expected_hex = verdict.params.get("hex")
+    length = verdict.params.get("length")
+    if not isinstance(length, int):
+        if not isinstance(expected_hex, str):
+            return VerdictOutcome(verdict, False, "ram_bytes needs hex or length")
+        length = len(bytes.fromhex(expected_hex))
+    if not 0 <= address <= address + length <= len(data):
+        return VerdictOutcome(verdict, False, f"range 0x{address:X}+{length} out of bounds")
+    actual = data[address : address + length]
+    if bless:
+        return VerdictOutcome(
+            verdict, True, f"blessed {length} bytes at 0x{address:X}", f'"{actual.hex()}"'
+        )
+    if not isinstance(expected_hex, str):
+        return VerdictOutcome(verdict, False, "ram_bytes.hex is required (run with --bless)")
+    expected = bytes.fromhex(expected_hex)
+    if actual == expected:
+        return VerdictOutcome(verdict, True, f"{length} bytes at 0x{address:X} match")
+    diffs = [i for i in range(length) if actual[i] != expected[i]]
+    shown = ", ".join(
+        f"0x{address + i:X}: 0x{actual[i]:02X} (want 0x{expected[i]:02X})" for i in diffs[:6]
+    )
+    more = f" and {len(diffs) - 6} more" if len(diffs) > 6 else ""
+    return VerdictOutcome(verdict, False, f"{len(diffs)} bytes differ: {shown}{more}")
 
 
 def _screen_image(

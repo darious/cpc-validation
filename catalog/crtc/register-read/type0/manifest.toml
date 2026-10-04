@@ -1,0 +1,18 @@
+schema = 1
+name = "crtc-register-read-type0"
+description = """
+CRTC type 0 register and status reads (see ../src/test.asm). Expected
+values come from the reference emulator (CPCEC) via --bless.
+"""
+
+[setup]
+model = "Cpc6128"
+crtc = "Type0"
+frames = 20
+rom = "../fixtures/test.rom"
+
+[[verdict]]
+kind = "ram_bytes"
+address = 0x9000
+length = 128
+hex = "0000000000000000000000000cdd000000000000000000000000000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff0000000000000000000000000cdd000000000000000000000000000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"

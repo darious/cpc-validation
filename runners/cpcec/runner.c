@@ -149,6 +149,22 @@ static void absolute(char *dst, const char *src)
 		die("cannot resolve path %s", src);
 }
 
+static int copy_file(const char *from, const char *to)
+{
+	FILE *in = fopen(from, "rb");
+	if (!in)
+		return 1;
+	FILE *out = fopen(to, "wb");
+	if (!out)
+		return fclose(in), 1;
+	char buf[65536];
+	size_t n;
+	while ((n = fread(buf, 1, sizeof buf, in)) > 0)
+		fwrite(buf, 1, n, out);
+	fclose(in);
+	return fclose(out) != 0;
+}
+
 // -------------------------------------------------------------------------
 // input script
 
@@ -236,10 +252,14 @@ static void push_op(enum op_kind kind, int value)
 }
 
 // type_text holds each key for 2 frames and then releases it for 1 frame.
+// The two-character sequence \n types Enter.
 static void push_text(const char *text)
 {
 	for (; *text; text++) {
-		int shift, code = char_key((unsigned char)*text, &shift);
+		int c = (unsigned char)*text;
+		if (c == '\\' && text[1] == 'n')
+			c = '\n', text++;
+		int shift, code = char_key(c, &shift);
 		if (code < 0) {
 			fprintf(stderr, "type_text: skipping unsupported char %c\n", *text);
 			continue;
@@ -391,10 +411,18 @@ static int runner_poll(SDL_Event *event)
 			if (n != (1 << 14) && n != (1 << 15))
 				die("--rom %s must be 16K or 32K", args.rom);
 		}
-		if (*args.disk_a && disc_open(args.disk_a, 0, 0))
-			die("cannot open --disk-a %s", args.disk_a);
-		if (*args.disk_b && disc_open(args.disk_b, 1, 0))
-			die("cannot open --disk-b %s", args.disk_b);
+		// Disks are opened from writable copies so software can write to
+		// them without touching the fixtures.
+		static const char *const copies[2] = {"disk-a.dsk", "disk-b.dsk"};
+		const char *disks[2] = {args.disk_a, args.disk_b};
+		for (int d = 0; d < 2; d++) {
+			if (!*disks[d])
+				continue;
+			char copy[PATH_MAX + 16];
+			snprintf(copy, sizeof copy, "%s/%s", args.output_dir, copies[d]);
+			if (copy_file(disks[d], copy) || disc_open(copy, d, 1))
+				die("cannot open disk %s", disks[d]);
+		}
 		frames_done = 0;
 	} else {
 		frames_done++;
@@ -474,6 +502,8 @@ int main(int argc, char **argv)
 
 	if (*args.input)
 		load_input(args.input);
+	if (mkdir(args.output_dir, 0777) && errno != EEXIST)
+		die("cannot create %s", args.output_dir);
 
 	// CPCEC finds its ROMs (and an optional config file) next to argv[0].
 	// The build directory holds copies of CPCEC's ROMs and no config file.

@@ -1,0 +1,19 @@
+schema = 1
+name = "keyboard-matrix"
+description = """
+Keyboard matrix scan while the input script holds a set of keys.
+Source: src/test.asm. Expected results come from the reference emulator
+(CPCEC) via --bless.
+"""
+
+[setup]
+model = "Cpc6128"
+crtc = "Type1"
+frames = 10
+rom = "fixtures/test.rom"
+input = "inputs/keys.txt"
+[[verdict]]
+kind = "ram_bytes"
+address = 0x9000
+length = 10
+hex = "fef9db773f7fffffce6f"

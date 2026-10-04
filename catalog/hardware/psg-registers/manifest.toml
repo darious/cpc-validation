@@ -1,0 +1,19 @@
+schema = 1
+name = "psg-registers"
+description = """
+PSG register write/read-back masks through the PPI.
+Source: src/test.asm. Expected results come from the reference emulator
+(CPCEC) via --bless.
+"""
+
+[setup]
+model = "Cpc6128"
+crtc = "Type1"
+frames = 20
+rom = "fixtures/test.rom"
+
+[[verdict]]
+kind = "ram_bytes"
+address = 0x9000
+length = 34
+hex = "ff0fff0fff0f1f3f1f1f1fffff0fffff000000000000003f000000000000ff005a00"

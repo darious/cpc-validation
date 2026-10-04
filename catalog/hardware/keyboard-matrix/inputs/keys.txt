@@ -1,0 +1,17 @@
+# Hold keys spread over every matrix line; they stay pressed to the end.
+sleep 5
+key_press Shift
+key_press A
+key_press Key1
+key_press Enter
+key_press Space
+key_press ArrowUp
+key_press Copy
+key_press Comma
+key_press Period
+key_press JoystickFire1
+key_press Delete
+key_press Numpad7
+key_press Tab
+key_press P
+key_press M

@@ -1,0 +1,19 @@
+schema = 1
+name = "ppi-ports"
+description = """
+PPI port reads: port B inputs, port C bit set/reset, mode-set latch clearing.
+Source: src/test.asm. Expected results come from the reference emulator
+(CPCEC) via --bless.
+"""
+
+[setup]
+model = "Cpc6128"
+crtc = "Type1"
+frames = 20
+rom = "fixtures/test.rom"
+
+[[verdict]]
+kind = "ram_bytes"
+address = 0x9000
+length = 7
+hex = "5f5e5acaa50000"
