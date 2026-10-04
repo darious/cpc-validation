@@ -1,0 +1,18 @@
+schema = 1
+name = "crtc-line-length-type4"
+description = """
+Line length (R0) 63, 59, 63, 67, 63, 61 on successive raster interrupts: lines of different lengths and their effect on interrupt timing and the monitor.
+Source: src/test.asm. Expected results come from the reference emulator
+(CPCEC) via --bless.
+"""
+
+[setup]
+model = "Cpc6128"
+crtc = "Type4"
+frames = 50
+rom = "../fixtures/test.rom"
+
+[[verdict]]
+kind = "screen_image"
+golden = "goldens/screen.png"
+tolerance = 0.0

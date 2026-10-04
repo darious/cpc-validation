@@ -1,0 +1,18 @@
+schema = 1
+name = "crtc-r12-midframe-type4"
+description = """
+Start address (R12) changed mid-frame; only some CRTC types and moments latch it.
+Source: src/test.asm. Expected results come from the reference emulator
+(CPCEC) via --bless.
+"""
+
+[setup]
+model = "Cpc6128"
+crtc = "Type4"
+frames = 50
+rom = "../fixtures/test.rom"
+
+[[verdict]]
+kind = "screen_image"
+golden = "goldens/screen.png"
+tolerance = 0.0

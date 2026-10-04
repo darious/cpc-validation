@@ -1,0 +1,18 @@
+schema = 1
+name = "crtc-hsync-width-type4"
+description = """
+HSYNC width (R3 low nibble) 14, 6, 4, 2, 1, 0 on successive raster interrupts: monitor position, Gate Array HSYNC length and interrupt counting (width 0 means no HSYNC on types 0/1).
+Source: src/test.asm. Expected results come from the reference emulator
+(CPCEC) via --bless.
+"""
+
+[setup]
+model = "Cpc6128"
+crtc = "Type4"
+frames = 50
+rom = "../fixtures/test.rom"
+
+[[verdict]]
+kind = "screen_image"
+golden = "goldens/screen.png"
+tolerance = 0.0

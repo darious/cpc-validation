@@ -85,9 +85,20 @@ from the reference runner apply to every emulator.
 | Harness CLI                | functional |
 | Manifest schema (v1)       | documented |
 | Runner protocol            | documented (canonical screen, key names) |
-| Verdicts                   | ram_byte, ram_bytes, ram_hash, screen_image, screen_text_* (modes 1 and 2) |
+| Verdicts                   | ram_byte, ram_bytes, ram_hash, screen_image, screen_text_* (modes 1 and 2), audio_tone |
 | Catalog: boot banners (464/664/6128) | 3 tests |
 | Catalog: AmstradDiag boot  | 1 test (disk loading through AMSDOS) |
-| Catalog: hardware (direct-boot ROMs) | instruction timing, raster/palette/mode/interrupt timing, PSG, PPI, keyboard matrix |
-| Catalog: CRTC              | overscan, geometry, register reads for types 0/1/2/4 |
+| Catalog: hardware (direct-boot ROMs) | instruction timing (82 sequences), raster/palette/mode/interrupt timing, interrupt modes, RAM banking, PSG, PPI, keyboard matrix |
+| Catalog: CRTC              | overscan, geometry, rupture, R1/R8 changes, short VSYNC, register reads; mid-frame changes of R0, R2, R3, R4, R6, R7, R9, R12, R13 (all on types 0/1/2/4) |
+| Catalog: sound             | PSG tones, envelope, noise, BASIC SOUND (audio_tone) |
+| Catalog: disk              | FDC command results, CAT, SAVE/LOAD on 464 (DDI-1)/664/6128 |
 | Catalog: Arnold acid tests | needs innoextract; not wired |
+
+### Results (reference: CPCEC)
+
+The CPCEC runner passes every test by construction (goldens are blessed
+from it). cpcgo passes 87 of 111. The 24 failures are the CRTC
+mid-frame probes for HSYNC width (R3), HSYNC position (R2), line length
+(R0), R9, R12 and R4 overflow on types 0/1/2/4. Most of the differences
+come from the monitor model; see cpcgo's `docs/validation.md`. The Ronald
+runner works but Ronald is not tracked against the catalog.

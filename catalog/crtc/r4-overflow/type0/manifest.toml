@@ -1,0 +1,18 @@
+schema = 1
+name = "crtc-r4-overflow-type0"
+description = """
+Vertical total (R4) written below and above the current row mid-frame: counter overflow and frame length changes.
+Source: src/test.asm. Expected results come from the reference emulator
+(CPCEC) via --bless.
+"""
+
+[setup]
+model = "Cpc6128"
+crtc = "Type0"
+frames = 50
+rom = "../fixtures/test.rom"
+
+[[verdict]]
+kind = "screen_image"
+golden = "goldens/screen.png"
+tolerance = 0.0
