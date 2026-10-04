@@ -1,0 +1,27 @@
+schema = 1
+name = "disk-save-load-664"
+description = """
+SAVE a BASIC program to a blank DATA-format disk, NEW, LOAD it back, RUN
+and CAT. Exercises FDC write, read and directory handling. The fixture is
+made by scripts/make-blank-dsk.py; runners work on a copy.
+"""
+
+[setup]
+model = "Cpc664"
+crtc = "Type1"
+frames = 300
+disks = ["../fixtures/blank.dsk"]
+input = "../inputs/save.txt"
+
+[[verdict]]
+kind = "screen_text_contains"
+needle = "SAVED OK 3"
+
+[[verdict]]
+kind = "screen_text_regex"
+pattern = "PROG\\s*\\.BAS"
+
+[[verdict]]
+kind = "screen_image"
+golden = "goldens/screen.png"
+tolerance = 0.0
