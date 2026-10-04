@@ -20,3 +20,6 @@ catalog/zexdoc/**/*.rom
 
 # Diff outputs produced by failed screen_image verdicts
 **/diff.png
+
+# CPCEC runner build output
+runners/cpcec/build/
