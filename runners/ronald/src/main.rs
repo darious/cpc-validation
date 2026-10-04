@@ -1,15 +1,20 @@
 //! Ronald adapter implementing the cpc-validation runner protocol.
 
-use std::path::PathBuf;
+use std::collections::HashMap;
+use std::path::{Path, PathBuf};
 
 use clap::Parser;
 use ronald_core::{
     AudioSink, Driver, VideoSink,
     constants::{SCREEN_BUFFER_HEIGHT, SCREEN_BUFFER_WIDTH},
-    system::{CpcModel, CrtcType, DiskDrives, SystemConfig},
+    system::{CpcModel, CrtcType, DiskDrives, SystemConfig, memory::RomSlot},
 };
 
 const FRAME_MICROSECONDS: usize = 20_000; // 50 Hz
+
+// The canonical screen window inside Ronald's frame buffer.
+const CANONICAL_TOP: usize = 4;
+const CANONICAL_HEIGHT: usize = 536;
 
 #[derive(Parser)]
 #[command(author, version, about = "Ronald CPC emulator adapter")]
@@ -30,6 +35,11 @@ struct Args {
     rom: Option<PathBuf>,
     #[arg(long)]
     input: Option<PathBuf>,
+    /// Directory holding cpc464.rom, cpc664.rom, cpc6128.rom (32K OS+BASIC)
+    /// and amsdos.rom. Defaults to $RONALD_ROM_DIR, then the executable's
+    /// directory, then the current directory.
+    #[arg(long)]
+    rom_dir: Option<PathBuf>,
 }
 
 struct CaptureVideo {
@@ -37,7 +47,7 @@ struct CaptureVideo {
 }
 
 impl VideoSink for CaptureVideo {
-    fn draw_frame(&mut self, buffer: &Vec<u8>) {
+    fn draw_frame(&mut self, buffer: &[u8]) {
         self.last.clear();
         self.last.extend_from_slice(buffer);
     }
@@ -71,6 +81,67 @@ fn parse_crtc(s: &str) -> Result<CrtcType, String> {
         "Type4" => Ok(CrtcType::Type4),
         _ => Err(format!("unknown crtc {s}")),
     }
+}
+
+fn find_rom_dir(args: &Args, probe: &str) -> PathBuf {
+    let mut candidates: Vec<PathBuf> = Vec::new();
+    if let Some(dir) = &args.rom_dir {
+        candidates.push(dir.clone());
+    }
+    if let Ok(dir) = std::env::var("RONALD_ROM_DIR") {
+        candidates.push(PathBuf::from(dir));
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(dir) = exe.parent() {
+            candidates.push(dir.to_path_buf());
+        }
+    }
+    candidates.push(PathBuf::from("."));
+    candidates
+        .into_iter()
+        .find(|d| d.join(probe).exists())
+        .unwrap_or_else(|| PathBuf::from("."))
+}
+
+fn read_rom(path: &Path) -> Result<Vec<u8>, String> {
+    std::fs::read(path).map_err(|e| format!("read {}: {e}", path.display()))
+}
+
+/// Builds the ROM set for the model: the 32K OS+BASIC image split into the
+/// lower ROM and upper ROM 0, AMSDOS as upper ROM 7 on the 664/6128 (or when
+/// a disk is inserted), and an optional --rom lower ROM replacement.
+fn load_roms(args: &Args, model: CpcModel) -> Result<HashMap<RomSlot, Vec<u8>>, String> {
+    let file = match model {
+        CpcModel::Cpc464 => "cpc464.rom",
+        CpcModel::Cpc664 => "cpc664.rom",
+        CpcModel::Cpc6128 => "cpc6128.rom",
+    };
+    let dir = find_rom_dir(args, file);
+    let system = read_rom(&dir.join(file))?;
+    if system.len() != 0x8000 {
+        return Err(format!("{file} must be 32K"));
+    }
+    let mut roms = HashMap::new();
+    roms.insert(RomSlot::Lower, system[..0x4000].to_vec());
+    roms.insert(RomSlot::Upper(0), system[0x4000..].to_vec());
+    let disks = args.disk_a.is_some() || args.disk_b.is_some();
+    if model != CpcModel::Cpc464 || disks {
+        roms.insert(RomSlot::Upper(7), read_rom(&dir.join("amsdos.rom"))?);
+    }
+    if let Some(path) = &args.rom {
+        let data = read_rom(path)?;
+        match data.len() {
+            0x4000 => {
+                roms.insert(RomSlot::Lower, data);
+            }
+            0x8000 => {
+                roms.insert(RomSlot::Lower, data[..0x4000].to_vec());
+                roms.insert(RomSlot::Upper(0), data[0x4000..].to_vec());
+            }
+            _ => return Err("--rom must be 16K or 32K".to_string()),
+        }
+    }
+    Ok(roms)
 }
 
 fn step_frames(
@@ -181,17 +252,21 @@ fn main() {
         }
     };
 
-    if args.rom.is_some() {
-        eprintln!("--rom not yet supported by this adapter");
-        std::process::exit(2);
-    }
+    let roms = match load_roms(&args, model) {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("{e}");
+            std::process::exit(2);
+        }
+    };
 
     let config = SystemConfig {
         model,
         crtc,
         disk_drives: DiskDrives::One,
+        roms,
     };
-    let mut driver = Driver::with_config(&config);
+    let mut driver = Driver::with_config(config);
 
     let mut video = CaptureVideo {
         last: vec![0u8; SCREEN_BUFFER_WIDTH * SCREEN_BUFFER_HEIGHT * 4],
@@ -220,11 +295,15 @@ fn main() {
 
     std::fs::create_dir_all(&args.output_dir).expect("create --output-dir");
 
+    // Crop Ronald's 768x560 frame to the canonical 768x536 window shared by
+    // all runners (see schema/runner-protocol.md).
+    let row = SCREEN_BUFFER_WIDTH * 4;
+    let canonical = &video.last[CANONICAL_TOP * row..(CANONICAL_TOP + CANONICAL_HEIGHT) * row];
     image::save_buffer(
         args.output_dir.join("screen.png"),
-        &video.last,
+        canonical,
         SCREEN_BUFFER_WIDTH as u32,
-        SCREEN_BUFFER_HEIGHT as u32,
+        CANONICAL_HEIGHT as u32,
         image::ColorType::Rgba8,
     )
     .expect("save screen.png");
@@ -242,7 +321,8 @@ fn main() {
         "exit": "frames_complete",
         "ram_size": ram.len(),
         "screen_mode": screen_mode,
-        "screen": { "width": SCREEN_BUFFER_WIDTH, "height": SCREEN_BUFFER_HEIGHT },
+        "screen": { "width": SCREEN_BUFFER_WIDTH, "height": CANONICAL_HEIGHT },
+        "emulator": "ronald",
     });
     std::fs::write(
         args.output_dir.join("meta.json"),
